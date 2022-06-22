@@ -1,0 +1,17 @@
+[build]
+public_url = "/"
+
+[watch]
+watch = [
+    "src/",
+    "Cargo.toml",
+    "Cargo.lock",
+    "index.html",
+    "css/input.css",
+    "tailwind.config.js",
+]
+
+[[hooks]]
+stage = "pre_build"
+command = "npx"
+command_arguments = ["tailwindcss", "-i", "./css/input.css", "-o", "./css/tailwind.css", "-m"]
