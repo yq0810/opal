@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::result;
 
 use gloo::console::{self, Timer};
 use gloo::timers::callback::{Interval, Timeout};
 
+use chrono::NaiveDateTime;
 use concat_string::concat_string;
 use indexmap::IndexSet;
 use js_sys::Function;
@@ -12,15 +14,13 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::MediaQueryList;
 use yew::prelude::*;
-use chrono::NaiveDateTime;
-
 
 #[cfg(feature = "console_log")]
 #[allow(unused_imports)]
 use log::debug;
 
 use crate::components::*;
-use crate::r#type::{SearchResults, SearchMode, SearchQuery, Query, FloorResult};
+use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
 
 const DB_CONFIG: &str = r#"
 {
@@ -40,7 +40,7 @@ const LIGHT_THEME: &str = "light";
 #[derive(Clone)]
 pub enum Msg {
     SearchStart(SearchQuery),
-    Results(SearchResults),
+    Results(Result<SearchResults, QueryError>),
     ToggleSearchType,
     ToggleThemeMode(ThemeMode),
     CycleThemeMode,
@@ -68,7 +68,6 @@ pub struct App {
 async fn wrap<F: std::future::Future>(f: F, finished_callback: yew::Callback<F::Output>) {
     finished_callback.emit(f.await);
 }
-
 
 unsafe fn initialize_worker_if_missing() {
     if !is_worker_initialized() {
@@ -110,7 +109,9 @@ impl Component for App {
 
         let timeout_handle = {
             let link = _ctx.link().clone();
-            Timeout::new(1000, move || link.send_message(Msg::SearchStart(SearchQuery::FloorPrcieWithSlug("azuki".to_string(),None))))
+            Timeout::new(1000, move || {
+                link.send_message(Msg::SearchStart(SearchQuery::Target))
+            })
         };
         Self {
             mode: SearchMode::Normal,
@@ -139,18 +140,21 @@ impl Component for App {
             Msg::SearchStart(search) => {
                 // initialize_worker_if_missing();
                 self.is_busy = true;
-                // let query_type = 
+                // let query_type =
                 spawn_local(wrap(
-                    SearchQuery::query(search),
+                    SearchQuery::exec_query(search),
                     ctx.link().callback(|results| Msg::Results(results)),
                 ));
                 true
             }
-            Msg::Results(results) => {
-                self.displayed_results = results;
-                self.is_busy = false;
-                true
-            }
+            Msg::Results(results) => match results {
+                Ok(results) => {
+                    self.displayed_results = results;
+                    self.is_busy = false;
+                    true
+                }
+                Err(_) => true,
+            },
             Msg::ToggleSearchType => {
                 self.mode = match &self.mode {
                     SearchMode::Normal => SearchMode::Normal,
@@ -350,9 +354,8 @@ impl Component for App {
 
         let text_ref = NodeRef::default();
         let link = ctx.link();
-        let on_search = link.callback(|s: String| {
-            Msg::SearchStart(SearchQuery::FloorPrcieWithSlug(s, None))
-        });
+        let on_search =
+            link.callback(|s: String| Msg::SearchStart(SearchQuery::FloorPriceBySlug(s)));
         let on_toggle = link.callback(|_| Msg::ToggleSearchType);
         let placeholder: &'static str = self.mode.placeholder_text();
         // let open_theme_window = link.callback(|_| Msg::CycleThemeMode);

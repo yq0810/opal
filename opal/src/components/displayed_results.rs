@@ -1,7 +1,7 @@
 use concat_string::concat_string;
 use yew::{classes, function_component, html, Html, Properties};
 
-use crate::r#type::SearchResults;
+use crate::types::SearchResults;
 
 
 #[derive(Clone, PartialEq, Properties)]

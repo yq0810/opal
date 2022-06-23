@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="en"><head>
+    <link rel="icon" href="data:,">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+    <meta name="description" content="opal is a simple app to search for the IPA phonetics of English words, or search for English words from the phonetics.">
+    <title>NFT Simulation</title>
+    <link rel="stylesheet" href="/tailwind-806ffb77d117b1f6.css">
+    
+    <base href="/">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="./static/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./static/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./static/favicon_io/favicon-16x16.png">
+    <link rel="manifest" href="./static/favicon_io/site.webmanifest">
+
+<link rel="preload" href="/opal-59432d95b52b1479_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/opal-59432d95b52b1479.js"></head>
+
+<body>
+<script type="module">import init from '/opal-59432d95b52b1479.js';init('/opal-59432d95b52b1479_bg.wasm');</script><script>(function () {
+    var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var url = protocol + '//' + window.location.host + '/_trunk/ws';
+    var poll_interval = 5000;
+    var reload_upon_connect = () => {
+        window.setTimeout(
+            () => {
+                // when we successfully reconnect, we'll force a
+                // reload (since we presumably lost connection to
+                // trunk due to it being killed, so it will have
+                // rebuilt on restart)
+                var ws = new WebSocket(url);
+                ws.onopen = () => window.location.reload();
+                ws.onclose = reload_upon_connect;
+            },
+            poll_interval);
+    };
+
+    var ws = new WebSocket(url);
+    ws.onmessage = (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.reload) {
+            window.location.reload();
+        }
+    };
+    ws.onclose = reload_upon_connect;
+})()
+</script></body></html>

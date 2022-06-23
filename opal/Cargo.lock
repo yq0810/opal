@@ -408,24 +408,17 @@ dependencies = [
  "indexmap",
  "js-sys",
  "log",
- "opal-derive",
+ "quote",
  "serde",
  "serde_json",
  "sql-js-httpvfs-rs",
+ "syn",
  "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
  "wee_alloc",
  "yew",
-]
-
-[[package]]
-name = "opal-derive"
-version = "0.1.0"
-dependencies = [
- "quote",
- "syn",
 ]
 
 [[package]]
