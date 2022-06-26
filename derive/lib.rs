@@ -37,35 +37,38 @@ pub fn derive_sqlgogo(input: TokenStream) -> TokenStream {
              }| VariantName,
         );
 
-    let EachType =
-        variants
-            .iter()
-            // Only keep the `#[physical]`-annotated variants
-            // .filter(|variant| {
-            //     variant
-            //         .attrs
-            //         .iter()
-            //         .any(|attr| attr.path.is_ident("result"))
-            // })
-            // From `Foo { … }` get `Foo`
-            .map(|Variant { ident: VariantName @ _, .. }| {
-                let new_type_name = format!("{}Result",VariantName.to_string().split("By").collect::<Vec<_>>().first().unwrap());
-                Ident::new(&new_type_name,VariantName.span()) })
-    // let EachType =
-    //     variants
-    //         .iter()
-    //         .map(|variant| {
-    //             variant
-    //                 .attrs
-    //                 .iter()
-    //                 .filter(|attr| attr.path.is_ident("result"))
-    //                 .collect::<Vec<_>>().first().unwrap().clone().path.get_ident()})
-    ;
+    let EachType = variants
+        .iter()
+        // Only keep the `#[physical]`-annotated variants
+        // .filter(|variant| {
+        //     variant
+        //         .attrs
+        //         .iter()
+        //         .any(|attr| attr.path.is_ident("result"))
+        // })
+        // From `Foo { … }` get `Foo`
+        .map(
+            |Variant {
+                 ident: VariantName @ _,
+                 ..
+             }| {
+                let new_type_name = format!(
+                    "{}Result",
+                    VariantName
+                        .to_string()
+                        .split("By")
+                        .collect::<Vec<_>>()
+                        .first()
+                        .unwrap()
+                );
+                Ident::new(&new_type_name, VariantName.span())
+            },
+        );
 
     let expanded = quote! {
         impl Entrys for #EnumName { // <- Assumes there being no generics.
-            fn entrys (self: &'_ Self, js: JsValue)
-              -> Vec<std::string::String>
+            fn entrys<T> (self: &'_ Self, js: JsValue)
+              -> Vec<T> where for<'a> T: Deserialize<'a>
             {
                 match *self {
                 #(
@@ -73,7 +76,6 @@ pub fn derive_sqlgogo(input: TokenStream) -> TokenStream {
                         #EachType::from_entrys(js)
                     },
                 )*
-                // | _ => false,
                 }
             }
         }

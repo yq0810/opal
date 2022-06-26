@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::result;
 
+use futures::future::try_join_all;
 use gloo::console::{self, Timer};
 use gloo::timers::callback::{Interval, Timeout};
 
@@ -14,12 +15,15 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::MediaQueryList;
 use yew::prelude::*;
+use multimap::MultiMap;
+
+
 
 #[cfg(feature = "console_log")]
 #[allow(unused_imports)]
 use log::debug;
 
-use crate::components::*;
+use crate::{components::*, TargetResult, SQLResult, ActivePriceResult};
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
 
 const DB_CONFIG: &str = r#"
@@ -39,8 +43,11 @@ const LIGHT_THEME: &str = "light";
 
 #[derive(Clone)]
 pub enum Msg {
-    SearchStart(SearchQuery),
-    Results(Result<SearchResults, QueryError>),
+    SearchStart,
+    TargetResults(Result<Vec<TargetResult>, QueryError>),
+    UpdateFloor(Result<Vec<FloorPriceResult>, QueryError>),
+    UpdateActive(Result<Vec<ActivePriceResult>, QueryError>),
+    ShowRefresh(Vec<FloorPriceResult>,Vec<ActivePriceResult>),
     ToggleSearchType,
     ToggleThemeMode(ThemeMode),
     CycleThemeMode,
@@ -61,6 +68,9 @@ pub struct App {
     displayed_results: SearchResults,
     current_theme_mode: ThemeMode,
     mql: Option<MediaQueryList>,
+    targets: Vec<TargetResult>,
+    floorPrice: MultiMap<String,FloorPriceResult>,
+    activePrice: MultiMap<String,ActivePriceResult>,
     timeout: Option<Timeout>,
 }
 
@@ -110,7 +120,7 @@ impl Component for App {
         let timeout_handle = {
             let link = _ctx.link().clone();
             Timeout::new(1000, move || {
-                link.send_message(Msg::SearchStart(SearchQuery::Target))
+                link.send_message(Msg::SearchStart)
             })
         };
         Self {
@@ -121,6 +131,9 @@ impl Component for App {
             current_theme_mode: theme_mode(),
             mql: None,
             timeout: Some(timeout_handle),
+            targets: vec![],
+            floorPrice: MultiMap::new(),
+            activePrice: MultiMap::new(),
         }
     }
 
@@ -128,33 +141,131 @@ impl Component for App {
         if first_render {
             let callback = ctx.link().callback(|mode| Msg::ToggleThemeMode(mode));
             callback.emit(ThemeMode::Dark);
-
-            // let callback2 = ctx.link().callback(|s| Msg::SearchStart(s));
-            // callback2.emit("azuki".to_string());
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         self.first_load = false;
         match msg {
-            Msg::SearchStart(search) => {
-                // initialize_worker_if_missing();
-                self.is_busy = true;
-                // let query_type =
-                spawn_local(wrap(
-                    SearchQuery::exec_query(search),
-                    ctx.link().callback(|results| Msg::Results(results)),
-                ));
-                true
-            }
-            Msg::Results(results) => match results {
+            Msg::TargetResults(results) => match results {
                 Ok(results) => {
-                    self.displayed_results = results;
-                    self.is_busy = false;
+                    self.targets = results.clone();
+                    self.is_busy = true;
+                    let slugs = results.clone().into_iter()
+                                               .map(|x|x.slug)
+                                               .collect::<HashSet<_>>()
+                                               .into_iter()
+                                               .collect::<Vec<_>>();
+                    ctx.link().send_future( async move {
+                        let msgs = slugs.iter().map(|x|{ 
+                            async move {
+                                SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPriceBySlug(x.clone())).await
+                            }
+                        }).collect::<Vec<_>>();
+                        let msgs2 = slugs.iter().map(|x|{ 
+                            async move {
+                                SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePriceBySlug(x.clone())).await
+                            }
+                        }).collect::<Vec<_>>();
+                        let msg_r = try_join_all(msgs).await
+                                .and_then(|x|Ok( x.into_iter().flatten().collect::<Vec<_>>()));
+                        // debug!("{}",msg_r.unwrap().len());
+                        let msg2_r = try_join_all(msgs2).await
+                                .and_then(|x|Ok( x.into_iter().flatten().collect::<Vec<_>>()));
+                        Msg::ShowRefresh(msg_r.clone().unwrap(),msg2_r.clone().unwrap())
+                        // match (msg_r,) {
+                        //     (Ok(f), Ok(a)) => {
+                        //         Msg::ShowRefresh(f,vec![])
+                        //     },
+                        //     (Ok(_), Err(_)) |
+                        //     (Err(_), Ok(_))  |
+                        //     (Err(_), Err(_)) => Msg::ShowRefresh(vec![], vec![]),
+                        // }
+                        
+                    });
+                    
+                    // ctx.link().send_message(Msg::ShowRefresh);
                     true
                 }
                 Err(_) => true,
             },
+            Msg::SearchStart => {
+                spawn_local(wrap(
+                    SearchQuery::exec_query::<TargetResult>(SearchQuery::Target),
+                    ctx.link().callback(|results| Msg::TargetResults(results)),
+                ));
+                true
+            }
+            Msg::UpdateFloor(results) => match results {
+                Ok(results) => {
+                    results.iter().for_each(|x|{
+                        self.floorPrice.remove(&x.slug);
+                        self.floorPrice.insert(x.slug.clone(), x.clone());
+                    });
+                    true
+                }
+                Err(_) => true,
+
+            },
+            Msg::UpdateActive(results) => match results {
+                Ok(results) => {
+                    results.iter().for_each(|x|{
+                        self.activePrice.remove(&x.slug);
+                        self.activePrice.insert(x.slug.clone(), x.clone());
+                    });
+                    true
+                }
+                Err(_) => true,
+
+            },
+            Msg::ShowRefresh(f,a) => {
+
+                self.floorPrice.clear();
+                self.activePrice.clear();
+                f.iter().for_each(|x|{
+                    self.floorPrice.insert(x.slug.clone(), x.clone());
+                });
+                a.iter().for_each(|x|{
+                    self.activePrice.insert(x.slug.clone(), x.clone());
+                });
+
+                let shows = self.targets.iter().map(|x|{
+                    let a = match self.floorPrice.get_vec(&x.slug) {
+                        Some(xs) => {
+                            xs.iter()
+                               .filter(|f|f.create_time > x.create_time )
+                               .fold(format!(""), |mut sum,f| {
+                                if f.price > x.price {
+                                    sum = format!("{} <> {} ✔",sum,f.display());
+                                }else{
+                                    sum = format!("{} <> {} ",sum,f.display());
+                                }
+                               sum
+                            })
+                        },
+                        None => format!("Not Find FloorPrice {}",x.slug),
+                    };
+                    let b = match self.activePrice.get_vec(&x.slug) {
+                        Some(xs) => {
+                            xs.iter()
+                               .filter(|a|a.trade_time > x.create_time )
+                               .fold(format!(""), |mut sum,a| {
+                               if a.price > x.price  {
+                                    sum = format!("{} <> {} ✔",sum,a.display());
+                               }else{
+                                    sum = format!("{} <> {}",sum,a.display());
+                               }
+                               sum
+                            })
+                        },
+                        None => format!("Not Find ActivePrice {} {}",x.slug,self.activePrice.len()),
+                    };
+                    format!("Target {} <> {} <> {} ",x.display(),a,b)
+                }).collect();
+                self.displayed_results = shows;
+                self.is_busy = false;
+                true
+            }
             Msg::ToggleSearchType => {
                 self.mode = match &self.mode {
                     SearchMode::Normal => SearchMode::Normal,
@@ -355,7 +466,7 @@ impl Component for App {
         let text_ref = NodeRef::default();
         let link = ctx.link();
         let on_search =
-            link.callback(|s: String| Msg::SearchStart(SearchQuery::FloorPriceBySlug(s)));
+            link.callback(|s: String| Msg::SearchStart);
         let on_toggle = link.callback(|_| Msg::ToggleSearchType);
         let placeholder: &'static str = self.mode.placeholder_text();
         // let open_theme_window = link.callback(|_| Msg::CycleThemeMode);

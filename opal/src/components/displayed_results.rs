@@ -66,7 +66,14 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
                         }
                         key={concat_string!(result,"1")}
                     >
-                        <div class={word_class.clone()}>{result}</div>
+                    { result.split("<>").collect::<Vec<_>>().iter().map(|br|{
+                        html!{
+                            <p class={word_class.clone()}>{br}</p>
+                        }
+
+                        }).collect::<Html>()
+
+                    }
                     </div>
                 }
             }).collect::<Html>() }
