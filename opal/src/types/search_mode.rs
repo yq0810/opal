@@ -120,9 +120,11 @@ impl SQLResult for ActivePriceResult {
 
 #[derive(Clone,Sqlgogo)]
 pub enum SearchQuery {
-    FloorPriceBySlug(String),
+    // FloorPriceBySlug(String),
     Target,
-    ActivePriceBySlug(String)
+    FloorPrice,
+    ActivePrice,
+    // ActivePriceBySlug(String)
 }
 
 pub trait Entrys {
@@ -136,15 +138,19 @@ pub trait Entrys {
 impl Query for SearchQuery {
     fn sql_query_raw(&self) -> String {
         match self {
-            SearchQuery::FloorPriceBySlug(s) => {
-                concat_string!("SELECT * FROM floorPrices WHERE slug = \"", s, "\";")
-            },
+            // SearchQuery::FloorPriceBySlug(s) => {
+            //     concat_string!("SELECT * FROM floorPrices WHERE slug = \"", s, "\";")
+            // },
             SearchQuery::Target => {
                 concat_string!("SELECT * FROM Targets;")
             },
-            SearchQuery::ActivePriceBySlug(s) => {
-                concat_string!("SELECT * FROM activePrices WHERE slug = \"", s, "\";")
-            },
+            // SearchQuery::ActivePriceBySlug(s) => {
+            //     concat_string!("SELECT * FROM activePrices WHERE slug = \"", s, "\";")
+            // },
+            SearchQuery::FloorPrice => 
+                concat_string!("SELECT * FROM floorPrices;"),
+            SearchQuery::ActivePrice => 
+                concat_string!("SELECT * FROM activePrices;"),
         }
     }
 

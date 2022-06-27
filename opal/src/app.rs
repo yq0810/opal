@@ -161,22 +161,10 @@ impl Component for App {
                                                .into_iter()
                                                .collect::<Vec<_>>();
                     ctx.link().send_future( async move {
-                        let msgs = slugs.iter().map(|x|{ 
-                            async move {
-                                SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPriceBySlug(x.clone())).await
-                            }
-                        }).collect::<Vec<_>>();
-                        let msgs2 = slugs.iter().map(|x|{ 
-                            async move {
-                                SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePriceBySlug(x.clone())).await
-                            }
-                        }).collect::<Vec<_>>();
-                        let msg_r = try_join_all(msgs).await
-                                .and_then(|x|Ok( x.into_iter().flatten().collect::<Vec<_>>()));
+                        let msg = SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
+                        let msgs2 = SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice).await;
                         // debug!("{}",msg_r.unwrap().len());
-                        let msg2_r = try_join_all(msgs2).await
-                                .and_then(|x|Ok( x.into_iter().flatten().collect::<Vec<_>>()));
-                        Msg::ShowRefresh(msg_r.clone().unwrap(),msg2_r.clone().unwrap())
+                        Msg::ShowRefresh(msg.clone().unwrap(),msgs2.clone().unwrap())
                         // match (msg_r,) {
                         //     (Ok(f), Ok(a)) => {
                         //         Msg::ShowRefresh(f,vec![])
