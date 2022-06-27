@@ -31,7 +31,7 @@ const DB_CONFIG: &str = r#"
     "from": "inline",
     "config": {
         "serverMode": "full",
-        "requestChunkSize": 4096,
+        "requestChunkSize": 8192,
         "url": "../databases/db.sqlite3"
     }
 }
