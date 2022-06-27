@@ -6,6 +6,7 @@ description = "opal is a simple static webapp to look up the IPA phonetics of En
 
 [dependencies]
 opal-derive = {path = "../derive"}
+owning_ref = "0.4.1"
 futures = "0.3"
 multimap = "0.8.3"
 thiserror = "1.0.30"

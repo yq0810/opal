@@ -72,6 +72,8 @@ pub struct App {
     floorPrice: MultiMap<String,FloorPriceResult>,
     activePrice: MultiMap<String,ActivePriceResult>,
     timeout: Option<Timeout>,
+    success_count: i32,
+    earn: f64,
 }
 
 // From https://github.com/yewstack/yew/issues/364#issuecomment-737138847
@@ -134,6 +136,8 @@ impl Component for App {
             targets: vec![],
             floorPrice: MultiMap::new(),
             activePrice: MultiMap::new(),
+            success_count: 0,
+            earn: 0.0,
         }
     }
 
@@ -235,10 +239,10 @@ impl Component for App {
                             xs.iter()
                                .filter(|f|f.create_time > x.create_time )
                                .fold(format!(""), |mut sum,f| {
-                                if f.price > x.price {
+                                if f.price > x.price && sum == "" {
                                     sum = format!("{} <> {} ✔",sum,f.display());
                                 }else{
-                                    sum = format!("{} <> {} ",sum,f.display());
+                                    // sum = format!("{} <> {} ",sum,f.display());
                                 }
                                sum
                             })
@@ -250,17 +254,20 @@ impl Component for App {
                             xs.iter()
                                .filter(|a|a.trade_time > x.create_time )
                                .fold(format!(""), |mut sum,a| {
-                               if a.price > x.price  {
-                                    sum = format!("{} <> {} ✔",sum,a.display());
+                               if a.price > x.price && sum == "" {
+                                    self.success_count+=1;
+                                    let earn = a.price - x.price;
+                                    self.earn += &earn;
+                                    sum = format!("{} <> {} ✔ (Earn: {} ETH)",sum,a.display(),earn);
                                }else{
-                                    sum = format!("{} <> {}",sum,a.display());
+                                    // sum = format!("{} <> {}",sum,a.display());
                                }
                                sum
                             })
                         },
                         None => format!("Not Find ActivePrice {} {}",x.slug,self.activePrice.len()),
                     };
-                    format!("Target {} <> {} <> {} ",x.display(),a,b)
+                    format!("{} <> {} <> {} ",x.display(),a,b)
                 }).collect();
                 self.displayed_results = shows;
                 self.is_busy = false;
@@ -467,7 +474,7 @@ impl Component for App {
         let link = ctx.link();
         let on_search =
             link.callback(|s: String| Msg::SearchStart);
-        let on_toggle = link.callback(|_| Msg::ToggleSearchType);
+        // let on_toggle = link.callback(|_| Msg::ToggleSearchType);
         let placeholder: &'static str = self.mode.placeholder_text();
         // let open_theme_window = link.callback(|_| Msg::CycleThemeMode);
         // let open_modal = Callback::from(|_| {
@@ -571,12 +578,12 @@ impl Component for App {
                     </div>
                 </div>
                 <p class={title_classes}>{"NFT Simulation"}</p>
-                <SearchBar {text_ref} {on_search} {placeholder} {on_toggle} toggle_text={self.mode.button_text()} first_load={self.first_load} is_busy={self.is_busy}/>
+                // <SearchBar {text_ref} {on_search} {placeholder} {on_toggle} toggle_text={self.mode.button_text()} first_load={self.first_load} is_busy={self.is_busy}/>
                 if self.is_busy {
                     <SpinnerIcon />
                 }
                 else if !self.displayed_results.is_empty() {
-                    <DisplayedResults to_display={self.displayed_results.clone()}/>
+                    <DisplayedResults success_count={self.success_count} earn={self.earn} to_display={self.displayed_results.clone()}/>
                 }
             </div>
         }

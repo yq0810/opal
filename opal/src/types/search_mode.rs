@@ -20,6 +20,7 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::MediaQueryList;
 use yew::prelude::*;
+use owning_ref::StringRef;
 
 use opal_derive::Sqlgogo;
 
@@ -99,20 +100,21 @@ pub struct ActivePriceResult {
 
 impl SQLResult for TargetResult {
     fn display(&self) -> String {
-        // let a =  SearchQuery::FloorPrcieBySlug("hi".to_string());
         format!("Target: {} , {} , {} , {}", self.slug , self.price, self.create_time, self.tx_hash)
     }
 }
 
 impl SQLResult for FloorPriceResult {
     fn display(&self) -> String {
-        format!("FloorPrcie: {} , {} ",self.price, self.create_time)
+        format!("FloorPrcie: {} , {}",self.price, self.create_time)
     }
 }
 
 impl SQLResult for ActivePriceResult {
     fn display(&self) -> String {
-        format!("Active: {}",self.price)
+        let times = self.trade_time.clone().to_string();
+        let times = times.split(".").collect::<Vec<_>>();
+        format!("ActivePrice: {} , {:?}",self.price, times.first().unwrap())
     }
 }
 
