@@ -88,12 +88,11 @@ jobs:
           python3 ./scripts/optimize.py ./dist
 
       - name: GitHub Pages action
-        working-directory: ./opal
         uses: peaceiris/actions-gh-pages@v3.7.3
         if: github.ref == 'refs/heads/main'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: ./opal/dist
           publish_branch: web-deploy
       # - name: Deploy on CFP
       #   run: |
