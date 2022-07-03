@@ -1,6 +1,7 @@
 mod app;
 use app::*;
 mod components;
+mod strategys;
 // pub mod r#type;
 pub mod types;
 pub use types::*;

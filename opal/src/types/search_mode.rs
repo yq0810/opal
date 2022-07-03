@@ -1,34 +1,14 @@
-pub type SearchResults = Vec<String>;
-
-use async_trait::async_trait;
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
-
-use gloo::console::{self, Timer};
-use gloo::timers::callback::{Interval, Timeout};
-
-use chrono::NaiveDateTime;
-use concat_string::concat_string;
-use indexmap::IndexSet;
-use js_sys::Function;
-use serde::de::DeserializeOwned;
+use crate::types::unit::my_date_format;
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use sql_js_httpvfs_rs::*;
-use sql_js_httpvfs_rs::*;
 use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::spawn_local;
-use web_sys::MediaQueryList;
-use yew::prelude::*;
-use owning_ref::StringRef;
-
 use opal_derive::Sqlgogo;
 
 #[cfg(feature = "console_log")]
 #[allow(unused_imports)]
 use log::debug;
 
-use super::QueryError;
 
 #[derive(Clone, Copy)]
 pub enum SearchMode {
@@ -48,19 +28,12 @@ impl SearchMode {
     }
 }
 
-
-pub type QueryOutput<T> = Pin<Box<dyn Future<Output = Result<Vec<T>, QueryError>>>>;
-pub trait Query {
-    fn sql_query_raw(&self) -> String;
-    fn exec_query<T>(r:Self) -> QueryOutput<T> 
-      where
-        Self: Sized , for<'a> T: Deserialize<'a>;
-}
-
 pub trait SQLResult {
     fn from_entrys<T>(res: JsValue) -> Vec<T>
     where
-        Self: Sized , for<'a> T: Deserialize<'a> {
+        Self: Sized,
+        for<'a> T: Deserialize<'a>,
+    {
         js_sys::Array::from(&res)
             .iter()
             .filter_map(|entry| {
@@ -79,15 +52,19 @@ pub trait SQLResult {
 pub struct FloorPriceResult {
     pub slug: String,
     pub price: f64,
-    pub create_time: String,
+    #[serde(with = "my_date_format")]
+    pub create_time: DateTime<Utc>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct TargetResult {
     pub tx_hash: String,
-    pub slug: String,
+    pub slug: CollResult,
     pub price: f64,
-    pub create_time: String,
+    pub compare_fp: Option<FloorPriceResult>,
+    pub compare_ap: ActivePriceResult,
+    #[serde(with = "my_date_format")]
+    pub create_time: DateTime<Utc>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
@@ -95,18 +72,41 @@ pub struct ActivePriceResult {
     pub tx_hash: String,
     pub slug: String,
     pub price: f64,
-    pub trade_time: String,
+    #[serde(with = "my_date_format")]
+    pub trade_time: DateTime<Utc>,
 }
 
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub struct CollResult {
+    pub slug: String,
+    pub fee: i32,
+}
+impl SQLResult for CollResult {
+    fn display(&self) -> String {
+        format!("Coll: {} ,fee={} ", self.slug, self.fee)
+    }
+}
 impl SQLResult for TargetResult {
     fn display(&self) -> String {
-        format!("Target: {} , {} , {} , {}", self.slug , self.price, self.create_time, self.tx_hash)
+        format!(
+            "Target: {:?} , {} , {} , {} = with {} {}",
+            self.slug,
+            self.price,
+            self.create_time,
+            self.tx_hash,
+            if self.compare_fp.is_some(){
+                self.compare_fp.clone().unwrap().display()
+            }else{
+                "".to_string()
+            },
+            self.compare_ap.clone().display()
+        )
     }
 }
 
 impl SQLResult for FloorPriceResult {
     fn display(&self) -> String {
-        format!("FloorPrcie: {} , {}",self.price, self.create_time)
+        format!("FloorPrcie: {} , {}", self.price, self.create_time)
     }
 }
 
@@ -114,58 +114,22 @@ impl SQLResult for ActivePriceResult {
     fn display(&self) -> String {
         let times = self.trade_time.clone().to_string();
         let times = times.split(".").collect::<Vec<_>>();
-        format!("ActivePrice: {} , {:?}",self.price, times.first().unwrap())
+        format!("ActivePrice: {} , {:?}", self.price, times.first().unwrap())
     }
 }
 
-#[derive(Clone,Sqlgogo)]
+#[derive(Clone, Sqlgogo)]
 pub enum SearchQuery {
     // FloorPriceBySlug(String),
     Target,
     FloorPrice,
     ActivePrice,
+    Coll,
     // ActivePriceBySlug(String)
 }
 
 pub trait Entrys {
-    fn entrys<T>(&self,js: JsValue) -> Vec<T> 
+    fn entrys<T>(&self, js: JsValue) -> Vec<T>
     where
         for<'a> T: Deserialize<'a>;
-}
-
-
-
-impl Query for SearchQuery {
-    fn sql_query_raw(&self) -> String {
-        match self {
-            // SearchQuery::FloorPriceBySlug(s) => {
-            //     concat_string!("SELECT * FROM floorPrices WHERE slug = \"", s, "\";")
-            // },
-            SearchQuery::Target => {
-                concat_string!("SELECT * FROM Targets;")
-            },
-            // SearchQuery::ActivePriceBySlug(s) => {
-            //     concat_string!("SELECT * FROM activePrices WHERE slug = \"", s, "\";")
-            // },
-            SearchQuery::FloorPrice => 
-                concat_string!("SELECT * FROM floorPrices;"),
-            SearchQuery::ActivePrice => 
-                concat_string!("SELECT * FROM activePrices;"),
-        }
-    }
-
-    fn exec_query<T>(r:Self) -> QueryOutput<T> 
-    where 
-        for<'a> T: Deserialize<'a> {
-        let query = r.sql_query_raw();
-        let fut = async move {
-            let res = match exec_query(query).await {
-                Ok(res) => Ok(res),
-                Err(err) => Err(QueryError::QueryExecError(err)),
-            }?;
-            let display_entrys = r.entrys::<T>(res);
-            Ok::<Vec<T>, QueryError>(display_entrys)
-        };
-        Box::pin(fut)
-    }
 }

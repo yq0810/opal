@@ -20,7 +20,7 @@ pub fn derive_sqlgogo(input: TokenStream) -> TokenStream {
         Data::Enum(DataEnum { variants: it, .. }) => it,
         _ => unreachable!(),
     };
-    let EachPhysicalVariant = variants
+    let each_physical_variant = variants
         .iter()
         // Only keep the `#[physical]`-annotated variants
         // .filter(|variant| {
@@ -37,7 +37,7 @@ pub fn derive_sqlgogo(input: TokenStream) -> TokenStream {
              }| VariantName,
         );
 
-    let EachType = variants
+    let each_type = variants
         .iter()
         // Only keep the `#[physical]`-annotated variants
         // .filter(|variant| {
@@ -49,19 +49,19 @@ pub fn derive_sqlgogo(input: TokenStream) -> TokenStream {
         // From `Foo { … }` get `Foo`
         .map(
             |Variant {
-                 ident: VariantName @ _,
+                 ident: variant_name @ _,
                  ..
              }| {
                 let new_type_name = format!(
                     "{}Result",
-                    VariantName
+                    variant_name
                         .to_string()
                         .split("By")
                         .collect::<Vec<_>>()
                         .first()
                         .unwrap()
                 );
-                Ident::new(&new_type_name, VariantName.span())
+                Ident::new(&new_type_name, variant_name.span())
             },
         );
 
@@ -72,8 +72,8 @@ pub fn derive_sqlgogo(input: TokenStream) -> TokenStream {
             {
                 match *self {
                 #(
-                    | Self::#EachPhysicalVariant { .. } => {
-                        #EachType::from_entrys(js)
+                    | Self::#each_physical_variant { .. } => {
+                        #each_type::from_entrys(js)
                     },
                 )*
                 }
