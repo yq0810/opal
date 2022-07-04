@@ -59,6 +59,12 @@ jobs:
         with:
           cache-on-failure: true
 
+
+      - name: Install trunk and wasm-bindgen-cli
+        run: |
+          cargo install trunk --version ~0.15 --locked
+          cargo install wasm-bindgen-cli --version ~0.2 --locked
+          
       - name: Configure git user and email
         run: |
           git config --global user.name ${GIT_USER}
