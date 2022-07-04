@@ -72,11 +72,6 @@ jobs:
           echo Name: $(git config --get user.name)
           echo Email: $(git config --get user.email)
 
-      - name: Install trunk and wasm-bindgen-cli
-        run: |
-          cp ./wasm-bindgen /home/runner/.cargo/bin/
-          cp ./wasm2es6js /home/runner/.cargo/bin/
-          cp ./trunk /home/runner/.cargo/bin/
 
 
       - name: Build
