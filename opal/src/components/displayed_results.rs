@@ -140,7 +140,10 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
                     >
                     { result.split("<>").collect::<Vec<_>>().iter().map(|br|{
                         html!{
-                            <p class={word_class.clone()}>{br}</p>
+                            <div>
+                                <p class={word_class.clone()}>{br}</p>
+                                <hr/>
+                            </div>
                         }
 
                         }).collect::<Html>()

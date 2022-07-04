@@ -155,13 +155,6 @@ impl Component for App {
                 Ok(results) => {
                     self.targets = results.clone();
                     self.is_busy = true;
-                    // let slugs = results.clone().into_iter()
-                    //                            .map(|x|x.slug)
-                    //                            .collect::<HashSet<_>>()
-                    //                            .into_iter()
-                    //                            .collect::<Vec<_>>();
-                    
-                    // ctx.link().send_message(Msg::ShowRefresh);
                     true
                 }
                 Err(_) => true,
@@ -172,22 +165,8 @@ impl Component for App {
                         let msg = SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
                         let msgs2 = SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice).await;
                         let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
-                        // debug!("{}",msg_r.unwrap().len());
                         Msg::ShowRefresh(msg.clone().unwrap(),msgs2.clone().unwrap(),msgs3.clone().unwrap())
-                        // match (msg_r,) {
-                        //     (Ok(f), Ok(a)) => {
-                        //         Msg::ShowRefresh(f,vec![])
-                        //     },
-                        //     (Ok(_), Err(_)) |
-                        //     (Err(_), Ok(_))  |
-                        //     (Err(_), Err(_)) => Msg::ShowRefresh(vec![], vec![]),
-                        // }
-                        
                     });
-                // spawn_local(wrap(
-                //     SearchQuery::exec_query::<TargetResult>(SearchQuery::Target),
-                //     ctx.link().callback(|results| Msg::TargetResults(results)),
-                // ));
                 true
             }
             Msg::UpdateFloor(results) => match results {

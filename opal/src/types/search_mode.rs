@@ -114,7 +114,7 @@ impl SQLResult for ActivePriceResult {
     fn display(&self) -> String {
         let times = self.trade_time.clone().to_string();
         let times = times.split(".").collect::<Vec<_>>();
-        format!("ActivePrice: {} , {:?}", self.price, times.first().unwrap())
+        format!("ActivePrice: {} , {:?} , {}", self.price, times.first().unwrap(),self.tx_hash)
     }
 }
 
