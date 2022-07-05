@@ -1,15 +1,7 @@
-use std::collections::{HashMap, HashSet};
-use std::result;
 
-use futures::future::try_join_all;
-use gloo::console::{self, Timer};
-use gloo::timers::callback::{Interval, Timeout};
-
-use chrono::{NaiveDateTime, Duration};
-use concat_string::concat_string;
-use indexmap::IndexSet;
+use gloo::timers::callback::{Timeout};
+use chrono::{Duration};
 use js_sys::Function;
-use serde::Deserialize;
 use sql_js_httpvfs_rs::*;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
@@ -165,7 +157,9 @@ impl Component for App {
                         let msg = SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
                         let msgs2 = SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice).await;
                         let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
-                        Msg::ShowRefresh(msg.clone().unwrap(),msgs2.clone().unwrap(),msgs3.clone().unwrap())
+                        Msg::ShowRefresh(msg.clone().unwrap(),
+                                         msgs2.clone().unwrap().into_iter().filter(|x|x.price < 500.0).collect(),
+                                         msgs3.clone().unwrap())
                     });
                 true
             }
@@ -439,10 +433,15 @@ impl Component for App {
         );
 
         let text_ref = NodeRef::default();
+        let strategy_input_ref = NodeRef::default();
+
         let link = ctx.link();
         let on_search =
             link.callback(|s: String| Msg::SearchStart);
-        // let on_toggle = link.callback(|_| Msg::ToggleSearchType);
+        let on_search2 =
+            link.callback(|s: String| Msg::SearchStart);
+        let on_toggle = link.callback(|_| Msg::ToggleSearchType);
+        let on_toggle2 = link.callback(|_| Msg::ToggleSearchType);
         let placeholder: &'static str = self.mode.placeholder_text();
         // let open_theme_window = link.callback(|_| Msg::CycleThemeMode);
         // let open_modal = Callback::from(|_| {
@@ -546,7 +545,8 @@ impl Component for App {
                     </div>
                 </div>
                 <p class={title_classes}>{"NFT Simulation"}</p>
-                // <SearchBar {text_ref} {on_search} {placeholder} {on_toggle} toggle_text={self.mode.button_text()} first_load={self.first_load} is_busy={self.is_busy}/>
+                <SearchBar {text_ref} {on_search} {placeholder} {on_toggle} toggle_text={self.mode.button_text()} first_load={self.first_load} is_busy={self.is_busy}/>
+                <StrategyInput {strategy_input_ref} {on_search2} {placeholder} {on_toggle2} first_load={self.first_load} is_busy={self.is_busy}/>
                 if self.is_busy {
                     <SpinnerIcon />
                 }

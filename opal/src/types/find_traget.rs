@@ -32,7 +32,7 @@ pub fn find_traget_from_profit(
                 let ap = ax.iter().cloned().find(|a_after| {
                     &a_after.trade_time > &x.trade_time && a_after.price > x.price 
                         && (a_after.price as f64 - x.price as f64 / x.price as f64
-                            > ((profit_percentage as f64)  + (coll.fee as f64 / 100.0 )/ 100.0))
+                            > (((profit_percentage as f64) + (coll.fee as f64 / 100.0 ))/ 100.0))
 
                 });
                 match ap {
@@ -70,7 +70,7 @@ pub fn find_traget_from_floor_active(
                 (Some(f),Some(coll)) => {
                     if x.price < f.price
                         && (x.price as f64 - f.price as f64 / f.price as f64
-                            >  ((diff_percentage as f64)  + (coll.fee as f64 / 100.0 )/ 100.0))
+                            >  (((diff_percentage as f64))/ 100.0))
                     {
                         Some(TargetResult {
                             tx_hash: x.tx_hash.clone(),
