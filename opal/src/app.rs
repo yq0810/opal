@@ -1,4 +1,9 @@
 
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str::FromStr;
+
 use gloo::timers::callback::{Timeout};
 use chrono::{Duration};
 use js_sys::Function;
@@ -15,7 +20,8 @@ use multimap::MultiMap;
 #[allow(unused_imports)]
 use log::debug;
 
-use crate::{components::*, TargetResult, SQLResult, ActivePriceResult, find_traget_from_floor_active, strategy_one, CollResult, find_traget_from_profit};
+use crate::strategys::{One, OneMsg};
+use crate::{components::*, TargetResult, SQLResult, ActivePriceResult, find_traget_from_floor_active, strategy_one, CollResult, find_traget_from_profit, SettingOption};
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
 
 const DB_CONFIG: &str = r#"
@@ -33,6 +39,8 @@ const OPAL_THEME_KEY: &str = "opal_theme";
 const DARK_THEME: &str = "dark";
 const LIGHT_THEME: &str = "light";
 
+
+
 pub enum Msg {
     SearchStart,
     TargetResults(Result<Vec<TargetResult>, QueryError>),
@@ -41,7 +49,11 @@ pub enum Msg {
     ShowRefresh(Vec<FloorPriceResult>,Vec<ActivePriceResult>,Vec<CollResult>),
     ToggleSearchType,
     ToggleThemeMode(ThemeMode),
+    OneOptionUpdate(OneMsg),
     // TimerDown,
+}
+impl Msg {
+
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -51,17 +63,23 @@ pub enum ThemeMode {
     System,
 }
 
+
+#[derive(Clone, Debug, Default)]
+pub struct Config {
+    pub s_one: One,
+}
+
 pub struct App {
     mode: SearchMode,
     first_load: bool,
     is_busy: bool,
     displayed_results: SearchResults,
-    current_theme_mode: ThemeMode,
     mql: Option<MediaQueryList>,
     pub targets: Vec<TargetResult>,
     pub floor_price: MultiMap<String,FloorPriceResult>,
     pub active_price: MultiMap<String,ActivePriceResult>,
     pub coll: MultiMap<String,CollResult>,
+    pub config: Config,
     timeout: Option<Timeout>,
     success_count: i32,
     earn: f64,
@@ -85,21 +103,6 @@ unsafe fn initialize_worker_if_missing() {
     }
 }
 
-fn theme_mode() -> ThemeMode {
-    if let Some(window) = web_sys::window() {
-        if let Ok(Some(local_storage)) = window.local_storage() {
-            if let Ok(Some(res)) = local_storage.get_item(OPAL_THEME_KEY) {
-                if res == DARK_THEME {
-                    return ThemeMode::Dark;
-                } else if res == LIGHT_THEME {
-                    return ThemeMode::Light;
-                }
-            }
-        }
-    }
-
-    ThemeMode::System
-}
 
 impl Component for App {
     type Message = Msg;
@@ -113,7 +116,7 @@ impl Component for App {
         let timeout_handle = {
             let link = _ctx.link().clone();
             Timeout::new(2000, move || {
-                link.send_message(Msg::SearchStart)
+                // link.send_message(Msg::SearchStart)
             })
         };
         Self {
@@ -121,7 +124,6 @@ impl Component for App {
             first_load: true,
             is_busy: false,
             displayed_results: SearchResults::default(),
-            current_theme_mode: theme_mode(),
             mql: None,
             timeout: Some(timeout_handle),
             targets: vec![],
@@ -130,6 +132,7 @@ impl Component for App {
             success_count: 0,
             earn: 0.0,
             coll: MultiMap::new(),
+            config: Config::default(),
         }
     }
 
@@ -332,6 +335,19 @@ impl Component for App {
                     }
                 }
             }
+            Msg::OneOptionUpdate(option_inputs) => {
+                match option_inputs {
+                    OneMsg::UpdateVolumeRateValue(v) => 
+                        self.config.s_one.volume_rate_value = v.unwrap_or_default(),
+                    OneMsg::UpdateVolumeRateDuration(v) => 
+                        self.config.s_one.volume_rate_duration = v.unwrap_or_default(),
+                    OneMsg::UpdateTxCountValue(v) => 
+                        self.config.s_one.tx_count_value = v.unwrap_or_default(),
+                    OneMsg::UpdateTxCountDuration(v) => 
+                        self.config.s_one.tx_count_duration = v.unwrap_or_default(),
+                };
+                true
+            },
         }
     }
 
@@ -364,6 +380,7 @@ impl Component for App {
             "flex",
             "flex-row",
             "gap-x-4",
+            "text-white"
         );
         let option_button_classes = classes!(
             "flex",
@@ -433,26 +450,12 @@ impl Component for App {
         );
 
         let text_ref = NodeRef::default();
-        let strategy_input_ref = NodeRef::default();
 
         let link = ctx.link();
         let on_search =
             link.callback(|s: String| Msg::SearchStart);
-        let on_search2 =
-            link.callback(|s: String| Msg::SearchStart);
         let on_toggle = link.callback(|_| Msg::ToggleSearchType);
-        let on_toggle2 = link.callback(|_| Msg::ToggleSearchType);
         let placeholder: &'static str = self.mode.placeholder_text();
-        // let open_theme_window = link.callback(|_| Msg::CycleThemeMode);
-        // let open_modal = Callback::from(|_| {
-        //     if let Some(window) = web_sys::window() {
-        //         if let Some(document) = window.document() {
-        //             if let Some(modal) = document.get_element_by_id("infoModal") {
-        //                 let _ = modal.class_list().remove_1("hidden");
-        //             }
-        //         }
-        //     }
-        // });
         let close_modal = Callback::from(|_| {
             if let Some(window) = web_sys::window() {
                 if let Some(document) = window.document() {
@@ -464,27 +467,28 @@ impl Component for App {
         });
 
         let about_text = "opal is a simple static webapp to look up the IPA phonetics of English words, or vice versa. More language support or sources may be added in the future.";
+        let option = SettingOption::new::<OneMsg>(
+            |x|OneMsg::UpdateVolumeRateValue(x.parse().ok()),
+            link,
+            self.config.s_one.volume_rate_value.to_string().clone(),
+            "VolumeRate:".to_string(),
+            |x|OneMsg::UpdateVolumeRateDuration(Some(x)),
+            self.config.s_one.volume_rate_duration.clone(),
+        );
+
+        let option2 = SettingOption::new::<OneMsg>(
+            |x|OneMsg::UpdateTxCountValue(x.parse().ok()),
+            link,
+            self.config.s_one.tx_count_value.to_string().clone(),
+            "TxCount:".to_string(),
+            |x|OneMsg::UpdateTxCountDuration(Some(x)),
+            self.config.s_one.tx_count_duration.clone(),
+        );
+        let options = vec![option,option2];
+        let debug = format!("{:?}",self.config);
 
         html! {
             <div class={root_classes}>
-                <div class={option_div_classes}>
-                    // <button title="Change theme" class={option_button_classes.clone()} onclick={open_theme_window}>
-                    //     <div class={mode_button_div_classes.clone()}>
-                    //     {
-                    //         match self.current_theme_mode {
-                    //             ThemeMode::Dark => html!{<MoonIcon />},
-                    //             ThemeMode::Light => html!{<SunIcon />},
-                    //             ThemeMode::System => html!{<ComputerIcon />},
-                    //         }
-                    //     }
-                    //     </div>
-                    // </button>
-                    // <button class={option_button_classes} onclick={open_modal}>
-                    //     <div class={mode_button_div_classes}>
-                    //         <InfoIcon/>
-                    //     </div>
-                    // </button>
-                </div>
                 <div id="infoModal" tabindex="-1" aria-hidden="true" role="dialog" aria-modal="true" class={modal_back_classes} onclick={close_modal.clone()}>
                     <div class={modal_classes} onclick={Callback::from(|e: MouseEvent| e.stop_propagation())}>
                         <div class={classes!("absolute", "top-0", "right-0", "mr-[8px]", "mt-[8px]",)}>
@@ -545,8 +549,18 @@ impl Component for App {
                     </div>
                 </div>
                 <p class={title_classes}>{"NFT Simulation"}</p>
+                <p class={option_div_classes}>{debug}</p>
                 <SearchBar {text_ref} {on_search} {placeholder} {on_toggle} toggle_text={self.mode.button_text()} first_load={self.first_load} is_busy={self.is_busy}/>
-                <StrategyInput {strategy_input_ref} {on_search2} {placeholder} {on_toggle2} first_load={self.first_load} is_busy={self.is_busy}/>
+                <div class="flex">
+                { options.iter().map(|option| {
+                    html!{
+                        <div class="mx-1">
+                            <StrategyInput {option} first_load={self.first_load} is_busy={self.is_busy}/>
+                        </div>
+                    }
+                  }).collect::<Html>() 
+                }
+                </div>
                 if self.is_busy {
                     <SpinnerIcon />
                 }

@@ -18,3 +18,6 @@ pub use strategys::*;
 
 pub mod sql_query;
 pub use sql_query::*;
+
+pub mod setting_option;
+pub use setting_option::*;
