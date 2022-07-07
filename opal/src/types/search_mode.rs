@@ -12,18 +12,21 @@ use log::debug;
 
 #[derive(Clone, Copy)]
 pub enum SearchMode {
-    Normal,
+    T1,
+    T2,
 }
 impl SearchMode {
     pub fn placeholder_text(&self) -> &'static str {
         match self {
-            SearchMode::Normal => "collection slug",
+            SearchMode::T1 => " > FloorPrice _ %",
+            SearchMode::T2=> " > Profit _ %",
         }
     }
 
     pub fn button_text(&self) -> &'static str {
         match self {
-            SearchMode::Normal => "Target",
+            SearchMode::T1 => "T1",
+            SearchMode::T2=> "T2",
         }
     }
 }

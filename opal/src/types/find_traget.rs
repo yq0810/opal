@@ -64,21 +64,23 @@ pub fn find_traget_from_floor_active(
     diff_percentage: i32,
 ) -> Vec<TargetResult> {
     aps.into_iter()
-        .filter_map(|x| {
-            let f = find_first_floor_price(&x.slug, &fps, &x.trade_time);
-            match (f,colls.get(&x.slug)) {
-                (Some(f),Some(coll)) => {
-                    if x.price < f.price
-                        && (x.price as f64 - f.price as f64 / f.price as f64
-                            >  (((diff_percentage as f64))/ 100.0))
+        .filter_map(|target| {
+            let f = find_first_floor_price(&target.slug, &fps, &target.trade_time);
+            match (f,colls.get(&target.slug)) {
+                (Some(f),Some(coll)) if f.price > target.price => {
+                    let pp = target.price; 
+                    let fp = f.price;
+                    let is_dff_p = pp < (fp * ((100.0 - diff_percentage as f64 )/100.0));
+                    
+                    if is_dff_p
                     {
                         Some(TargetResult {
-                            tx_hash: x.tx_hash.clone(),
+                            tx_hash: target.tx_hash.clone(),
                             slug: coll.clone(),
-                            price: x.price.clone(),
-                            create_time: x.trade_time.clone(),
+                            price: target.price.clone(),
+                            create_time: target.trade_time.clone(),
                             compare_fp: Some(f),
-                            compare_ap: x.clone(),
+                            compare_ap: target.clone(),
                         })
                     } else {
                         None

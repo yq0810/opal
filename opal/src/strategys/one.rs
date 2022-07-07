@@ -12,6 +12,7 @@ pub enum OneMsg {
     UpdateTxCountValue(Option<i64>),
     UpdateTxCountDuration(Option<SettingDuration>),
 }
+
 impl Strategy for OneMsg {
     fn msgFn() -> Box<dyn Fn(Self) -> Msg> {
         let f = |x| -> Msg { Msg::OneOptionUpdate(x) };

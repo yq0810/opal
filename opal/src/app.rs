@@ -1,28 +1,28 @@
-
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str::FromStr;
 
-use gloo::timers::callback::{Timeout};
-use chrono::{Duration};
+use chrono::Duration;
+use gloo::timers::callback::Timeout;
 use js_sys::Function;
+use multimap::MultiMap;
 use sql_js_httpvfs_rs::*;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::MediaQueryList;
 use yew::prelude::*;
-use multimap::MultiMap;
-
-
 
 #[cfg(feature = "console_log")]
 #[allow(unused_imports)]
 use log::debug;
 
 use crate::strategys::{One, OneMsg};
-use crate::{components::*, TargetResult, SQLResult, ActivePriceResult, find_traget_from_floor_active, strategy_one, CollResult, find_traget_from_profit, SettingOption};
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
+use crate::{
+    components::*, find_traget_from_floor_active, find_traget_from_profit, strategy_one,
+    ActivePriceResult, CollResult, SQLResult, SettingOption, TargetResult,
+};
 
 const DB_CONFIG: &str = r#"
 {
@@ -39,34 +39,39 @@ const OPAL_THEME_KEY: &str = "opal_theme";
 const DARK_THEME: &str = "dark";
 const LIGHT_THEME: &str = "light";
 
-
-
 pub enum Msg {
-    SearchStart,
+    SearchStart(Option<i32>),
     TargetResults(Result<Vec<TargetResult>, QueryError>),
     UpdateFloor(Result<Vec<FloorPriceResult>, QueryError>),
     UpdateActive(Result<Vec<ActivePriceResult>, QueryError>),
-    ShowRefresh(Vec<FloorPriceResult>,Vec<ActivePriceResult>,Vec<CollResult>),
+    ShowRefresh(
+        Vec<FloorPriceResult>,
+        Vec<ActivePriceResult>,
+        Vec<CollResult>,
+        i32,
+    ),
     ToggleSearchType,
     ToggleThemeMode(ThemeMode),
     OneOptionUpdate(OneMsg),
     // TimerDown,
 }
-impl Msg {
-
-}
+impl Msg {}
 
 #[derive(Clone, Copy, Debug)]
 pub enum ThemeMode {
     Dark,
     Light,
-    System,
 }
-
 
 #[derive(Clone, Debug, Default)]
 pub struct Config {
     pub s_one: One,
+}
+
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct StrategyResult {
+    pub pass_count: i32,
+    pub earn: f64,
 }
 
 pub struct App {
@@ -76,11 +81,12 @@ pub struct App {
     displayed_results: SearchResults,
     mql: Option<MediaQueryList>,
     pub targets: Vec<TargetResult>,
-    pub floor_price: MultiMap<String,FloorPriceResult>,
-    pub active_price: MultiMap<String,ActivePriceResult>,
-    pub coll: MultiMap<String,CollResult>,
+    pub floor_price: MultiMap<String, FloorPriceResult>,
+    pub active_price: MultiMap<String, ActivePriceResult>,
+    pub coll: MultiMap<String, CollResult>,
     pub config: Config,
-    timeout: Option<Timeout>,
+    pub one_result: StrategyResult,
+    timeout: Timeout,
     success_count: i32,
     earn: f64,
 }
@@ -103,7 +109,6 @@ unsafe fn initialize_worker_if_missing() {
     }
 }
 
-
 impl Component for App {
     type Message = Msg;
     type Properties = ();
@@ -115,24 +120,25 @@ impl Component for App {
 
         let timeout_handle = {
             let link = _ctx.link().clone();
-            Timeout::new(2000, move || {
-                // link.send_message(Msg::SearchStart)
-            })
+            Timeout::new(2000, move || link.send_message(Msg::SearchStart(Some(30))))
         };
+        let mut config = Config::default();
+        config.s_one.volume_rate_value = 300;
         Self {
-            mode: SearchMode::Normal,
+            mode: SearchMode::T1,
             first_load: true,
             is_busy: false,
             displayed_results: SearchResults::default(),
             mql: None,
-            timeout: Some(timeout_handle),
+            timeout: timeout_handle,
             targets: vec![],
             floor_price: MultiMap::new(),
             active_price: MultiMap::new(),
             success_count: 0,
             earn: 0.0,
             coll: MultiMap::new(),
-            config: Config::default(),
+            config,
+            one_result: Default::default(),
         }
     }
 
@@ -154,105 +160,166 @@ impl Component for App {
                 }
                 Err(_) => true,
             },
-            Msg::SearchStart => {
+            Msg::SearchStart(x) => {
                 self.is_busy = true;
-                    ctx.link().send_future( async move {
-                        let msg = SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
-                        let msgs2 = SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice).await;
-                        let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
-                        Msg::ShowRefresh(msg.clone().unwrap(),
-                                         msgs2.clone().unwrap().into_iter().filter(|x|x.price < 500.0).collect(),
-                                         msgs3.clone().unwrap())
-                    });
+                ctx.link().send_future(async move {
+                    let msg =
+                        SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
+                    let msgs2 =
+                        SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice)
+                            .await;
+                    let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
+                    Msg::ShowRefresh(
+                        msg.clone().unwrap(),
+                        msgs2
+                            .clone()
+                            .unwrap()
+                            .into_iter()
+                            .filter(|x| x.price < 500.0)
+                            .collect(),
+                        msgs3.clone().unwrap(),
+                        x.unwrap_or_default(),
+                    )
+                });
                 true
             }
             Msg::UpdateFloor(results) => match results {
                 Ok(results) => {
-                    results.iter().for_each(|x|{
+                    results.iter().for_each(|x| {
                         self.floor_price.remove(&x.slug);
                         self.floor_price.insert(x.slug.clone(), x.clone());
                     });
                     true
                 }
                 Err(_) => true,
-
             },
             Msg::UpdateActive(results) => match results {
                 Ok(results) => {
-                    results.iter().for_each(|x|{
+                    results.iter().for_each(|x| {
                         self.active_price.remove(&x.slug);
                         self.active_price.insert(x.slug.clone(), x.clone());
                     });
                     true
                 }
                 Err(_) => true,
-
             },
-            Msg::ShowRefresh(f,a,c) => {
-
+            Msg::ShowRefresh(f, a, c, p) => {
                 self.floor_price.clear();
                 self.active_price.clear();
                 self.coll.clear();
-                f.iter().for_each(|x|{
+                f.iter().for_each(|x| {
                     self.floor_price.insert(x.slug.clone(), x.clone());
                 });
-                a.iter().for_each(|x|{
+                a.iter().for_each(|x| {
                     self.active_price.insert(x.slug.clone(), x.clone());
                 });
-                c.iter().for_each(|x|{
+                c.iter().for_each(|x| {
                     self.coll.insert(x.slug.clone(), x.clone());
                 });
 
                 // 1
-                let stage_one = find_traget_from_floor_active(&&self.floor_price,&self.coll,&a,30);
-                let stage_actives = stage_one.iter().map(|x|x.compare_ap.clone()).collect::<Vec<_>>();
+                let stage_one =
+                    find_traget_from_floor_active(&&self.floor_price, &self.coll, &a, p);
+                match self.mode {
+                    SearchMode::T1 => {
+                        self.targets = stage_one;
+                    }
+                    SearchMode::T2 => {
+                        let stage_actives = stage_one
+                            .iter()
+                            .map(|x| x.compare_ap.clone())
+                            .collect::<Vec<_>>();
+                        self.targets = find_traget_from_profit(
+                            &stage_actives,
+                            &&self.active_price,
+                            &self.coll,
+                            p,
+                        );
+                    }
+                }
                 // 2
-                self.targets = find_traget_from_profit(&stage_actives,&&self.active_price,&self.coll,30);
 
-                let shows = self.targets.iter().map(|x|{
-                    let a = match self.floor_price.get_vec(&x.slug.slug) {
-                        Some(xs) => {
-                            xs.iter()
-                               .filter(|f|f.create_time > x.create_time )
-                               .fold(format!(""), |mut sum,f| {
-                                if f.price > x.price && sum == "" {
-                                    sum = format!("{} <> {} ✔",sum,f.display());
-                                }else{
-                                    // sum = format!("{} <> {} ",sum,f.display());
-                                }
-                               sum
-                            })
-                        },
-                        None => format!("Not Find FloorPrice {}",x.slug.slug),
-                    };
-                    let b = match self.active_price.get_vec(&x.slug.slug) {
-                        Some(xs) => {
-                            xs.iter()
-                               .filter(|a|a.trade_time > x.create_time )
-                               .fold(format!(""), |mut sum,a| {
-                               if a.price > x.price && sum == "" {
-                                    self.success_count+=1;
-                                    let earn = a.price - x.price;
-                                    self.earn += &earn;
-                                    sum = format!("{} <> {} ✔ (Earn: {} ETH)",sum,a.display(),earn);
-                               }else{
-                                    // sum = format!("{} <> {}",sum,a.display());
-                               }
-                               sum
-                            })
-                        },
-                        None => format!("Not Find ActivePrice {} {}",x.slug.slug,self.active_price.len()),
-                    };
-                    let s_1 = strategy_one(&x.create_time,&&x.slug.slug,&Duration::hours(1),&self.active_price);
-                    format!("{} <> {} <> {} <> s_1 = {:?}",x.display(),a,b, s_1)
-                }).collect();
+                let shows = self
+                    .targets
+                    .iter()
+                    .map(|x| {
+                        let a = match self.floor_price.get_vec(&x.slug.slug) {
+                            Some(xs) => {
+                                xs.iter().filter(|f| f.create_time > x.create_time).fold(
+                                    format!(""),
+                                    |mut sum, f| {
+                                        if f.price > x.price && sum == "" {
+                                            sum = format!("{} <> {} ✔", sum, f.display());
+                                        } else {
+                                            // sum = format!("{} <> {} ",sum,f.display());
+                                        }
+                                        sum
+                                    },
+                                )
+                            }
+                            None => format!("Not Find FloorPrice {}", x.slug.slug),
+                        };
+                        let s_1 = strategy_one(
+                            &x.create_time,
+                            &&x.slug.slug,
+                            &self.config.s_one.volume_rate_duration.to_duration(),
+                            &self.config.s_one.tx_count_duration.to_duration(),
+                            &self.active_price,
+                        );
+                        let is_s_1 = s_1.total_volume as i64 > self.config.s_one.volume_rate_value
+                            && s_1.tx_count > self.config.s_one.tx_count_value;
+
+                        let b = match self.active_price.get_vec(&x.slug.slug) {
+                            Some(xs) => {
+                                xs.iter().filter(|a| a.trade_time > x.create_time).fold(
+                                    format!(""),
+                                    |mut sum, a| {
+                                        if a.price > x.price && sum == "" {
+                                            self.success_count += 1;
+                                            let earn = a.price - x.price;
+                                            self.earn += &earn;
+
+                                            // one
+                                            if is_s_1 {
+                                                self.one_result.earn += &earn;
+                                                self.one_result.pass_count += 1;
+                                            }
+                                            //
+                                            sum = format!(
+                                                "{} <> {} ✔ (Earn: {} ETH)",
+                                                sum,
+                                                a.display(),
+                                                earn
+                                            );
+                                        } else {
+                                            // sum = format!("{} <> {}",sum,a.display());
+                                        }
+                                        sum
+                                    },
+                                )
+                            }
+                            None => format!(
+                                "Not Find ActivePrice {} {}",
+                                x.slug.slug,
+                                self.active_price.len()
+                            ),
+                        };
+                        let s_1_display = if is_s_1 {
+                            format!("{:?} ✔", s_1)
+                        } else {
+                            format!("{:?}", s_1)
+                        };
+                        format!("{} <> {} <> {} <> {:?}", x.display(), a, b, s_1_display)
+                    })
+                    .collect();
                 self.displayed_results = shows;
                 self.is_busy = false;
                 true
             }
             Msg::ToggleSearchType => {
                 self.mode = match &self.mode {
-                    SearchMode::Normal => SearchMode::Normal,
+                    SearchMode::T1 => SearchMode::T2,
+                    SearchMode::T2 => SearchMode::T1,
                 };
                 true
             }
@@ -300,54 +367,25 @@ impl Component for App {
 
                         true
                     }
-                    ThemeMode::System => {
-                        if let Some(window) = web_sys::window() {
-                            if let Ok(Some(mql)) =
-                                window.match_media("(prefers-color-scheme: dark)")
-                            {
-                                toggle_dark(mql.matches());
-
-                                // TODO: Use a closure to properly hook into Yew state.
-                                // Maybe see https://github.com/rustwasm/wasm-bindgen/issues/843 and
-                                // https://stackoverflow.com/a/19014495
-                                mql.set_onchange(Some(&Function::new_with_args(
-                                    "e",
-                                    "
-                                if (e.matches) {
-                                    document.documentElement.classList.add('dark')
-                                } else {
-                                    document.documentElement.classList.remove('dark')
-                                }
-                                ",
-                                )));
-
-                                self.mql = Some(mql);
-                            }
-
-                            if let Ok(Some(local_storage)) = window.local_storage() {
-                                let _ = local_storage.remove_item(OPAL_THEME_KEY);
-                            }
-
-                            true
-                        } else {
-                            false
-                        }
-                    }
                 }
             }
             Msg::OneOptionUpdate(option_inputs) => {
                 match option_inputs {
-                    OneMsg::UpdateVolumeRateValue(v) => 
-                        self.config.s_one.volume_rate_value = v.unwrap_or_default(),
-                    OneMsg::UpdateVolumeRateDuration(v) => 
-                        self.config.s_one.volume_rate_duration = v.unwrap_or_default(),
-                    OneMsg::UpdateTxCountValue(v) => 
-                        self.config.s_one.tx_count_value = v.unwrap_or_default(),
-                    OneMsg::UpdateTxCountDuration(v) => 
-                        self.config.s_one.tx_count_duration = v.unwrap_or_default(),
+                    OneMsg::UpdateVolumeRateValue(v) => {
+                        self.config.s_one.volume_rate_value = v.unwrap_or_default()
+                    }
+                    OneMsg::UpdateVolumeRateDuration(v) => {
+                        self.config.s_one.volume_rate_duration = v.unwrap_or_default()
+                    }
+                    OneMsg::UpdateTxCountValue(v) => {
+                        self.config.s_one.tx_count_value = v.unwrap_or_default()
+                    }
+                    OneMsg::UpdateTxCountDuration(v) => {
+                        self.config.s_one.tx_count_duration = v.unwrap_or_default()
+                    }
                 };
                 true
-            },
+            }
         }
     }
 
@@ -370,202 +408,76 @@ impl Component for App {
             "font-title",
             "dark:text-slate-50",
             "text-slate-900",
-        );
-        let option_div_classes = classes!(
-            "absolute",
-            "top-0",
-            "right-0",
-            "mr-[20px]",
-            "mt-[18px]",
-            "flex",
-            "flex-row",
-            "gap-x-4",
-            "text-white"
-        );
-        let option_button_classes = classes!(
-            "flex",
-            "items-center",
-            "justify-center",
-            "p-1.5",
-            "hover:bg-slate-300",
-            "hover:dark:bg-slate-600",
-            "rounded-md"
-        );
-        let mode_button_div_classes = classes!("h-5", "w-5", "text-blue-400");
-        let modal_back_classes = classes!(
-            "hidden",
-            "fixed",
-            "top-0",
-            "left-0",
-            "w-full",
-            "h-full",
-            "outline-none",
-            "overflow-x-hidden",
-            "overflow-y-auto",
-            "flex",
-            "justify-center",
-            "z-50",
-            "bg-gray-700",
-            "bg-opacity-50",
-        );
-        let modal_classes = classes!(
-            "relative",
-            "rounded-md",
-            "overflow-hidden",
-            "bg-white",
-            "dark:bg-slate-700",
-            "text-left",
-            "w-full",
-            "max-w-2xl",
-            "h-full",
-            "md:h-auto",
-            "m-auto",
-            "p-8",
-            "flex",
-            "flex-col",
-            "gap-5",
-            "drop-shadow-light",
-        );
-        let modal_header = classes!(
-            "text-lg",
-            "font-body",
-            "font-bold",
-            "dark:text-slate-50",
-            "subpixel-antialiased",
-            "pb-0.5",
-        );
-        let modal_text = classes!(
-            "md:leading-snug",
-            "leading-snug",
-            "font-body",
-            "text-base",
-            "dark:text-slate-50",
-            "subpixel-antialiased",
-        );
-        let link_hover = classes!(
-            "text-blue-500",
-            "dark:text-blue-400",
-            "hover:text-blue-700",
-            "hover:dark:text-blue-300"
+            "px-5",
+            "my-10"
         );
 
         let text_ref = NodeRef::default();
 
         let link = ctx.link();
-        let on_search =
-            link.callback(|s: String| Msg::SearchStart);
+        let on_search = link.callback(|x: String| Msg::SearchStart(x.parse().ok()));
         let on_toggle = link.callback(|_| Msg::ToggleSearchType);
         let placeholder: &'static str = self.mode.placeholder_text();
-        let close_modal = Callback::from(|_| {
-            if let Some(window) = web_sys::window() {
-                if let Some(document) = window.document() {
-                    if let Some(modal) = document.get_element_by_id("infoModal") {
-                        let _ = modal.class_list().add_1("hidden");
-                    }
-                }
-            }
-        });
 
-        let about_text = "opal is a simple static webapp to look up the IPA phonetics of English words, or vice versa. More language support or sources may be added in the future.";
         let option = SettingOption::new::<OneMsg>(
-            |x|OneMsg::UpdateVolumeRateValue(x.parse().ok()),
+            |x| OneMsg::UpdateVolumeRateValue(x.parse().ok()),
             link,
             self.config.s_one.volume_rate_value.to_string().clone(),
             "VolumeRate:".to_string(),
-            |x|OneMsg::UpdateVolumeRateDuration(Some(x)),
+            |x| OneMsg::UpdateVolumeRateDuration(Some(x)),
             self.config.s_one.volume_rate_duration.clone(),
         );
 
         let option2 = SettingOption::new::<OneMsg>(
-            |x|OneMsg::UpdateTxCountValue(x.parse().ok()),
+            |x| OneMsg::UpdateTxCountValue(x.parse().ok()),
             link,
             self.config.s_one.tx_count_value.to_string().clone(),
             "TxCount:".to_string(),
-            |x|OneMsg::UpdateTxCountDuration(Some(x)),
+            |x| OneMsg::UpdateTxCountDuration(Some(x)),
             self.config.s_one.tx_count_duration.clone(),
         );
-        let options = vec![option,option2];
-        let debug = format!("{:?}",self.config);
+
+        let options = vec![option, option2];
+        let debug = format!("{:?}", self.config);
+        let deubug_display = debug
+            .split(",")
+            .flat_map(|x| x.split("{").map(|x| x.to_string().replace("}", "")))
+            .collect::<Vec<_>>();
 
         html! {
             <div class={root_classes}>
-                <div id="infoModal" tabindex="-1" aria-hidden="true" role="dialog" aria-modal="true" class={modal_back_classes} onclick={close_modal.clone()}>
-                    <div class={modal_classes} onclick={Callback::from(|e: MouseEvent| e.stop_propagation())}>
-                        <div class={classes!("absolute", "top-0", "right-0", "mr-[8px]", "mt-[8px]",)}>
-                            <button class={classes!( "flex", "items-center", "justify-center", "rounded-md")} onclick={close_modal}>
-                                <div class={classes!("w-4", "h-4", "text-slate-400", "hover:text-slate-500")}>
-                                    <XMarkIcon />
+                <div class="flex inherit top-0 right-0 justify-end my-10">
+                    <p class={title_classes.clone()}>{"NFT Simulation"}</p>
+                    <div class="flex flex-col  text-white">
+                        { deubug_display.iter().map(|d| {
+                                html! {
+                                    <div>
+                                        {d}
+                                    </div>
+                                }
+                            }).collect::<Html>()
+                        }
+                    </div>
+                    <div class="flex-col p-5 block p-6 max-w-sm bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 ">
+                        <p class="text-2xl font-title dark:text-slate-50 text-slate-900 px-5">
+                            {"Strategy 1 option"}
+                        </p>
+                        { options.iter().map(|option| {
+                            html!{
+                                <div class="mx">
+                                    <StrategyInput {option} first_load={self.first_load} is_busy={self.is_busy}/>
                                 </div>
-                            </button>
-                        </div>
-                        <div>
-                            <h1 class={modal_header.clone()}>
-                                {"About"}
-                            </h1>
-                            <div class={modal_text.clone()}>
-                                <p>
-                                    {about_text}
-                                </p>
-                                <br/>
-                                <p>
-                                    {"All source code can be found "}
-                                    <a href="https://github.com/ClementTsang/opal" target="_blank" class={link_hover.clone()}>{"on GitHub"}</a>
-                                    {"."}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h1 class={modal_header.clone()}>
-                                {"Credits"}
-                            </h1>
-                            <p class={modal_text.clone()}>
-                                {"opal would not be possible without:"}
-                            </p>
-                            <div class={modal_text}>
-                                <ul class={classes!("list-disc", "pl-5", "pt-1")}>
-                                    <li>
-                                        { "English (US) IPA mappings based on " }
-                                        <a href="https://github.com/cmusphinx/cmudict" target="_blank" class={link_hover.clone()}>{"CMUDict"}</a>
-                                        { " (see " }
-                                        <a href="https://github.com/cmusphinx/cmudict/blob/master/LICENSE" target="_blank" class={link_hover.clone()}>{"original license"}</a>
-                                        {")" }
-                                    </li>
-                                    <li>
-                                        <a href="https://phiresky.github.io/blog/2021/hosting-sqlite-databases-on-github-pages/" target="_blank" class={link_hover.clone()}>{"phiresky"}</a>
-                                        { " for the idea of hosting SQLite on a static webpage, and writing libraries to do so." }
-                                    </li>
-                                    <li>
-                                        <a href="https://yew.rs/" target="_blank" class={link_hover.clone()}>{"Yew"}</a>
-                                        { ", the Rust frontend framework used to write this." }
-                                    </li>
-                                    <li>
-                                        <a href="https://tailwindcss.com/" target="_blank" class={link_hover.clone()}>{"Tailwind CSS"}</a>
-                                        { ", the CSS framework used because I'm bad at CSS." }
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
+                            }
+                        }).collect::<Html>()
+                        }
                     </div>
                 </div>
-                <p class={title_classes}>{"NFT Simulation"}</p>
-                <p class={option_div_classes}>{debug}</p>
                 <SearchBar {text_ref} {on_search} {placeholder} {on_toggle} toggle_text={self.mode.button_text()} first_load={self.first_load} is_busy={self.is_busy}/>
-                <div class="flex">
-                { options.iter().map(|option| {
-                    html!{
-                        <div class="mx-1">
-                            <StrategyInput {option} first_load={self.first_load} is_busy={self.is_busy}/>
-                        </div>
-                    }
-                  }).collect::<Html>() 
-                }
-                </div>
                 if self.is_busy {
                     <SpinnerIcon />
                 }
                 else if !self.displayed_results.is_empty() {
-                    <DisplayedResults success_count={self.success_count} earn={self.earn} to_display={self.displayed_results.clone()}/>
+                    <DisplayedResults one={self.one_result.clone()} success_count={self.success_count} earn={self.earn} to_display={self.displayed_results.clone()}/>
                 }
             </div>
         }

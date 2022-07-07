@@ -16,6 +16,27 @@ pub enum SettingDuration {
     Hours(i32)
 }
 
+impl SettingDuration {
+    pub fn set_value(&self,nv:i32) -> Self {
+        match &self {
+            SettingDuration::Days(_) => SettingDuration::Days(nv),
+            SettingDuration::Hours(_) => SettingDuration::Hours(nv),
+        }
+    }         
+    pub fn get_value(&self) -> i32 {
+        match &self {
+            SettingDuration::Days(x) |
+            SettingDuration::Hours(x) => x.clone(),
+        }
+    }         
+    pub fn to_duration(&self) -> Duration {
+        match &self {
+            SettingDuration::Days(x) => Duration::days(*x as i64),
+            SettingDuration::Hours(x) => Duration::hours(*x as i64),
+        }
+    }         
+}
+
 impl Default for SettingDuration {
     fn default() -> Self {
         Self::Hours(1)
@@ -25,8 +46,8 @@ impl Default for SettingDuration {
 impl SettingDuration {
     pub fn Display(&self) -> String {
         match &self {
-            SettingDuration::Days(_) => "Days".to_string(),
-            SettingDuration::Hours(_) => "Hours".to_string(),
+            SettingDuration::Days(_) => "/Days".to_string(),
+            SettingDuration::Hours(_) => "/Hours".to_string(),
         }
     }
     pub fn Value(&self) -> i32 {
@@ -40,14 +61,12 @@ impl SettingDuration {
 #[derive(Clone,PartialEq, Debug)]
 pub struct SettingValueInput {
     pub label_text:String,
-    pub node_ref: NodeRef,
     pub data_ref: String,
     pub on_change: Box<Callback<String>>,
 }
 
 #[derive(Clone,PartialEq, Debug)]
 pub struct SettingDurationToggle {
-    pub node_ref: NodeRef,
     pub data_ref: SettingDuration,
     pub on_change: Box<Callback<SettingDuration>>,
 }
@@ -74,19 +93,16 @@ impl SettingOption {
         {
         let input = SettingValueInput { 
             label_text,
-            node_ref: NodeRef::default(),
             on_change: Box::new(link.callback(move |x| T::msgFn()(call_back_input(x)))),
             data_ref
         };
         let duration = SettingDurationToggle { 
-            node_ref: NodeRef::default(),
             on_change: Box::new(link.callback(move |x| T::msgFn()(call_back_duration(x)))),
             data_ref: duraion_ref,
         };
         Self { 
             input, duration: Some(duration)
         }
-        
-
     }
 }
+
