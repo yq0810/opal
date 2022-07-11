@@ -276,7 +276,15 @@ impl Component for App {
                                             // );
                             }
                             None => None,
-                        }.and_then(|x|Some(x.clone()));
+                        }.and_then(|a|{
+                                            self.success_count += 1;
+                                            let earn = a.price - x.price;
+                                            self.earn += &earn;
+                                            if is_s_1 {
+                                                self.one_result.earn += &earn;
+                                                self.one_result.pass_count += 1;
+                                            }
+                            Some(a.clone())});
                         // let s_1_display = if is_s_1 {
                         //     format!("{:?} ✔", s_1)
                         // } else {
