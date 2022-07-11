@@ -1,11 +1,4 @@
-use std::borrow::BorrowMut;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::str::FromStr;
-
-use chrono::Duration;
 use gloo::timers::callback::Timeout;
-use js_sys::Function;
 use multimap::MultiMap;
 use sql_js_httpvfs_rs::*;
 use wasm_bindgen::JsValue;
@@ -109,6 +102,15 @@ unsafe fn initialize_worker_if_missing() {
     }
 }
 
+#[cfg(not(feature = "debug"))]
+fn timeout_handle(link: html::Scope<App> ) -> Timeout {
+    Timeout::new(2000,  move|| link.send_message(Msg::SearchStart(Some(30))))
+} 
+#[cfg(feature = "debug")]
+fn timeout_handle() -> Timeout {
+    Timeout::new(2000, move || () )
+} 
+
 impl Component for App {
     type Message = Msg;
     type Properties = ();
@@ -120,12 +122,12 @@ impl Component for App {
 
         let timeout_handle = {
             let link = _ctx.link().clone();
-            Timeout::new(2000, move || link.send_message(Msg::SearchStart(Some(30))))
+            timeout_handle(link)
         };
         let mut config = Config::default();
         config.s_one.volume_rate_value = 300;
         Self {
-            mode: SearchMode::T1,
+            mode: SearchMode::T2,
             first_load: true,
             is_busy: false,
             displayed_results: SearchResults::default(),
@@ -161,27 +163,16 @@ impl Component for App {
                 Err(_) => true,
             },
             Msg::SearchStart(x) => {
-                self.is_busy = true;
-                ctx.link().send_future(async move {
-                    let msg =
-                        SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
-                    let msgs2 =
-                        SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice)
-                            .await;
-                    let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
-                    Msg::ShowRefresh(
-                        msg.clone().unwrap(),
-                        msgs2
-                            .clone()
-                            .unwrap()
-                            .into_iter()
-                            .filter(|x| x.price < 500.0)
-                            .collect(),
-                        msgs3.clone().unwrap(),
-                        x.unwrap_or_default(),
-                    )
-                });
-                true
+                match x {
+                    Some(x) => {
+                        self.is_busy = true;
+                        ctx.link().send_future(SearchMode::start(x));
+                        true
+                    }
+                    None => {
+                        true
+                    }
+                }
             }
             Msg::UpdateFloor(results) => match results {
                 Ok(results) => {

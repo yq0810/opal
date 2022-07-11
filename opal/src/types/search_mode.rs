@@ -1,14 +1,14 @@
-use crate::types::unit::my_date_format;
+use crate::{app::Msg, types::unit::my_date_format, Query};
 use chrono::{DateTime, Utc};
+use futures::Future;
+use opal_derive::Sqlgogo;
 use serde::Deserialize;
 use sql_js_httpvfs_rs::*;
 use wasm_bindgen::JsValue;
-use opal_derive::Sqlgogo;
 
 #[cfg(feature = "console_log")]
 #[allow(unused_imports)]
 use log::debug;
-
 
 #[derive(Clone, Copy)]
 pub enum SearchMode {
@@ -19,14 +19,34 @@ impl SearchMode {
     pub fn placeholder_text(&self) -> &'static str {
         match self {
             SearchMode::T1 => " > FloorPrice _ %",
-            SearchMode::T2=> " > Profit _ %",
+            SearchMode::T2 => " > Profit _ %",
         }
     }
 
     pub fn button_text(&self) -> &'static str {
         match self {
             SearchMode::T1 => "T1",
-            SearchMode::T2=> "T2",
+            SearchMode::T2 => "T2",
+        }
+    }
+
+    pub fn start(diff_p: i32) -> impl Future<Output = Msg> {
+        async move {
+            let msg = SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
+            let msgs2 =
+                SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice).await;
+            let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
+            Msg::ShowRefresh(
+                msg.clone().unwrap(),
+                msgs2
+                    .clone()
+                    .unwrap()
+                    .into_iter()
+                    .filter(|x| x.price < 500.0)
+                    .collect(),
+                msgs3.clone().unwrap(),
+                diff_p,
+            )
         }
     }
 }
@@ -97,9 +117,9 @@ impl SQLResult for TargetResult {
             self.price,
             self.create_time,
             self.tx_hash,
-            if self.compare_fp.is_some(){
+            if self.compare_fp.is_some() {
                 self.compare_fp.clone().unwrap().display()
-            }else{
+            } else {
                 "".to_string()
             },
             self.compare_ap.clone().display()
@@ -117,7 +137,12 @@ impl SQLResult for ActivePriceResult {
     fn display(&self) -> String {
         let times = self.trade_time.clone().to_string();
         let times = times.split(".").collect::<Vec<_>>();
-        format!("ActivePrice: {} , {:?} , {}", self.price, times.first().unwrap(),self.tx_hash)
+        format!(
+            "ActivePrice: {} , {:?} , {}",
+            self.price,
+            times.first().unwrap(),
+            self.tx_hash
+        )
     }
 }
 

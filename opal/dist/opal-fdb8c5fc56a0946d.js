@@ -617,16 +617,16 @@ function getImports() {
     imports.wbg.__wbindgen_throw = function(arg0, arg1) {
         throw new Error(getStringFromWasm0(arg0, arg1));
     };
-    imports.wbg.__wbindgen_closure_wrapper5574 = function(arg0, arg1, arg2) {
-        const ret = makeClosure(arg0, arg1, 479, __wbg_adapter_24);
+    imports.wbg.__wbindgen_closure_wrapper6294 = function(arg0, arg1, arg2) {
+        const ret = makeClosure(arg0, arg1, 519, __wbg_adapter_24);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper8685 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 500, __wbg_adapter_27);
+    imports.wbg.__wbindgen_closure_wrapper9405 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 539, __wbg_adapter_27);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper9028 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 507, __wbg_adapter_30);
+    imports.wbg.__wbindgen_closure_wrapper9748 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 546, __wbg_adapter_30);
         return addHeapObject(ret);
     };
     imports['./snippets/sql-js-httpvfs-rs-7862d572fb3dc3a7/src/build/index.js'] = __wbg_star0;
@@ -663,7 +663,7 @@ function initSync(bytes) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('opal-118af5e620abdda7_bg.wasm', import.meta.url);
+        input = new URL('opal-fdb8c5fc56a0946d_bg.wasm', import.meta.url);
     }
     const imports = getImports();
 

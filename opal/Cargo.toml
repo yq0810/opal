@@ -44,7 +44,10 @@ yew = "0.19.3"
 default = ["console_log", "log"]
 # default = []
 
+[profile.dev]
+debug = true
 [profile.release]
+debug = false
 lto = true
 opt-level = 's'
 panic = "abort"
