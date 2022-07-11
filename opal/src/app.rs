@@ -198,6 +198,11 @@ impl Component for App {
                 self.floor_price.clear();
                 self.active_price.clear();
                 self.coll.clear();
+                self.success_count = 0;
+                self.earn = 0.0;
+                self.one_result.earn = 0.0;
+                self.one_result.pass_count = 0;
+
                 f.iter().for_each(|x| {
                     self.floor_price.insert(x.slug.clone(), x.clone());
                 });

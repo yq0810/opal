@@ -99,7 +99,7 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
                     }
                     key={concat_string!("earn","1")}
                 >
-                    <p>{concat_string!("target_count (alpha): ",
+                    <p>{concat_string!("target_count: ",
                                     props.to_display.len().to_string()
                                     )}
                                     </p>
