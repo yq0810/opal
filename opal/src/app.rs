@@ -14,7 +14,7 @@ use crate::strategys::{One, OneMsg};
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
 use crate::{
     components::*, find_traget_from_floor_active, find_traget_from_profit, strategy_one,
-    ActivePriceResult, CollResult, SQLResult, SettingOption, TargetResult,
+    ActivePriceResult, CollResult, SQLResult, SettingOption, TargetResult, HTMLDisplay,
 };
 
 const DB_CONFIG: &str = r#"
@@ -236,20 +236,12 @@ impl Component for App {
                     .map(|x| {
                         let a = match self.floor_price.get_vec(&x.slug.slug) {
                             Some(xs) => {
-                                xs.iter().filter(|f| f.create_time > x.create_time).fold(
-                                    format!(""),
-                                    |mut sum, f| {
-                                        if f.price > x.price && sum == "" {
-                                            sum = format!("{} <> {} ✔", sum, f.display());
-                                        } else {
-                                            // sum = format!("{} <> {} ",sum,f.display());
-                                        }
-                                        sum
+                                xs.iter().filter(|f| f.create_time > x.create_time)
+                                         .find(|f| f.price > x.price)
                                     },
-                                )
-                            }
-                            None => format!("Not Find FloorPrice {}", x.slug.slug),
-                        };
+                            None => None,
+                        }.and_then(|x|Some(x.clone()));
+
                         let s_1 = strategy_one(
                             &x.create_time,
                             &&x.slug.slug,
@@ -262,47 +254,43 @@ impl Component for App {
 
                         let b = match self.active_price.get_vec(&x.slug.slug) {
                             Some(xs) => {
-                                xs.iter().filter(|a| a.trade_time > x.create_time).fold(
-                                    format!(""),
-                                    |mut sum, a| {
-                                        if a.price > x.price && sum == "" {
-                                            self.success_count += 1;
-                                            let earn = a.price - x.price;
-                                            self.earn += &earn;
+                                xs.iter()
+                                 .filter(|a| a.trade_time > x.create_time)
+                                 .find(|a|a.price > x.price)
+                                        // if a.price > x.price && sum == "" {
+                                        //     self.success_count += 1;
+                                        //     let earn = a.price - x.price;
+                                        //     self.earn += &earn;
 
-                                            // one
-                                            if is_s_1 {
-                                                self.one_result.earn += &earn;
-                                                self.one_result.pass_count += 1;
-                                            }
+                                        //     // one
+                                        //     if is_s_1 {
+                                        //         self.one_result.earn += &earn;
+                                        //         self.one_result.pass_count += 1;
+                                        //     }
                                             //
-                                            sum = format!(
-                                                "{} <> {} ✔ (Earn: {} ETH)",
-                                                sum,
-                                                a.display(),
-                                                earn
-                                            );
-                                        } else {
-                                            // sum = format!("{} <> {}",sum,a.display());
-                                        }
-                                        sum
-                                    },
-                                )
+                                            // sum = format!(
+                                            //     "{} <> {} ✔ (Earn: {} ETH)",
+                                            //     sum,
+                                            //     a.display(),
+                                            //     earn
+                                            // );
                             }
-                            None => format!(
-                                "Not Find ActivePrice {} {}",
-                                x.slug.slug,
-                                self.active_price.len()
-                            ),
-                        };
-                        let s_1_display = if is_s_1 {
-                            format!("{:?} ✔", s_1)
-                        } else {
-                            format!("{:?}", s_1)
-                        };
-                        format!("{} <> {} <> {} <> {:?}", x.display(), a, b, s_1_display)
+                            None => None,
+                        }.and_then(|x|Some(x.clone()));
+                        // let s_1_display = if is_s_1 {
+                        //     format!("{:?} ✔", s_1)
+                        // } else {
+                        //     format!("{:?}", s_1)
+                        // };
+                        HTMLDisplay {
+                            fp:a.clone(),
+                            ap:b.clone(),
+                            is_s_1: is_s_1.clone(),
+                            one: Some(s_1.clone()),
+                            target: x.clone(),
+                        }.new()
                     })
-                    .collect();
+                    .collect::<Vec<_>>();
                 self.displayed_results = shows;
                 self.is_busy = false;
                 true
@@ -468,7 +456,7 @@ impl Component for App {
                     <SpinnerIcon />
                 }
                 else if !self.displayed_results.is_empty() {
-                    <DisplayedResults one={self.one_result.clone()} success_count={self.success_count} earn={self.earn} to_display={self.displayed_results.clone()}/>
+                    <DisplayedResults mode_name={self.mode.button_text()} one={self.one_result.clone()} success_count={self.success_count} earn={self.earn} to_display={self.displayed_results.clone()}/>
                 }
             </div>
         }

@@ -21,3 +21,6 @@ pub use sql_query::*;
 
 pub mod setting_option;
 pub use setting_option::*;
+
+pub mod html_display;
+pub use html_display::*;

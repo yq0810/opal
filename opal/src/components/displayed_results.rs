@@ -7,10 +7,11 @@ use crate::{SearchResults, app::StrategyResult};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct DisplayedResultsProps {
-    pub to_display: SearchResults,
+    pub to_display: Vec<Html>,
     pub success_count: i32,
     pub earn: f64,
     pub one: StrategyResult,
+    pub mode_name : String,
 }
 
 #[function_component(DisplayedResults)]
@@ -20,7 +21,7 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
         "md:w-3/4",
         "w-11/12",
         "min-w-0",
-        "max-w-[840px]",
+        "max-w-[960px]",
         "flex",
         "flex-col",
         "gap-4",
@@ -85,6 +86,11 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
     html! {
         <div class={results_class}>
             <div class={state_result_class.clone()}>
+                <div class="px-2">
+                    <p>
+                        {concat_string!(props.mode_name ," Result")}
+                    </p>
+                </div>
                 <div
                     class={
                         let mut c = state_card_classes.clone();
@@ -124,10 +130,20 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
             </div>
             <hr/>
             <div class={state_result_class}>
+            <div class="px-2">
+                <p>
+                    {"Strategy 1 Result"}
+                </p>
+            </div>
                 <div
                     class={
                         let mut c = state_card_classes.clone();
-                        c.push("border-green-500");
+                        if props.one.pass_count > 0 {
+                            c.push("border-green-500");
+                        } else {
+                            c.push("border-red-500");
+                        }
+                        c.push("px-2");
                         c
                     }
                 >
@@ -139,7 +155,12 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
                 <div
                     class={
                         let mut c = state_card_classes.clone();
-                        c.push("border-green-500");
+                        if props.one.earn > 0.0 {
+                            c.push("border-green-500");
+                        } else {
+                            c.push("border-red-500");
+                        }
+                        c.push("px-2");
                         c
                     }
                 >
@@ -149,32 +170,8 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
             <hr/>
            
             { props.to_display.iter().map(|result| {
-                let is_good =  result.contains("✔");
                 html!{
-                    <div
-                        class={
-                            let mut c = card_classes.clone();
-                            if is_good {
-                                c.push("border-green-500");
-                            }else{
-                                c.push("border-red-500");
-                            }
-                            c
-                        }
-                        key={concat_string!(result,"1")}
-                    >
-                    { result.split("<>").collect::<Vec<_>>().iter().map(|br|{
-                        html!{
-                            <div>
-                                <p class={word_class.clone()}>{br}</p>
-                                <hr/>
-                            </div>
-                        }
-
-                        }).collect::<Html>()
-
-                    }
-                    </div>
+                    result.clone()
                 }
             }).collect::<Html>() }
         </div>
