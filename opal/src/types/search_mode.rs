@@ -1,16 +1,14 @@
-use crate::{types::unit::my_date_format, Query, app::Msg};
+use crate::{app::Msg, types::unit::my_date_format, Query};
 use chrono::{DateTime, Utc};
 use futures::Future;
+use opal_derive::Sqlgogo;
 use serde::Deserialize;
 use sql_js_httpvfs_rs::*;
 use wasm_bindgen::JsValue;
-use opal_derive::Sqlgogo;
-
 
 #[cfg(feature = "console_log")]
 #[allow(unused_imports)]
 use log::debug;
-
 
 #[derive(Clone, Copy)]
 pub enum SearchMode {
@@ -21,37 +19,35 @@ impl SearchMode {
     pub fn placeholder_text(&self) -> &'static str {
         match self {
             SearchMode::T1 => " > FloorPrice _ %",
-            SearchMode::T2=> " > Profit _ %",
+            SearchMode::T2 => " > Profit _ %",
         }
     }
 
     pub fn button_text(&self) -> &'static str {
         match self {
             SearchMode::T1 => "T1",
-            SearchMode::T2=> "T2",
+            SearchMode::T2 => "T2",
         }
     }
 
-    pub fn start(diff_p:i32) -> impl Future<Output = Msg> {
+    pub fn start(diff_p: i32) -> impl Future<Output = Msg> {
         async move {
-        let msg =
-            SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
-        let msgs2 =
-            SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice)
-                .await;
-        let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
-        Msg::ShowRefresh(
-            msg.clone().unwrap(),
-            msgs2
-                .clone()
-                .unwrap()
-                .into_iter()
-                .filter(|x| x.price < 500.0)
-                .collect(),
-            msgs3.clone().unwrap(),
-            diff_p,
-        )
-    }
+            let msg = SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
+            let msgs2 =
+                SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice).await;
+            let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
+            Msg::ShowRefresh(
+                msg.clone().unwrap(),
+                msgs2
+                    .clone()
+                    .unwrap()
+                    .into_iter()
+                    .filter(|x| x.price < 500.0)
+                    .collect(),
+                msgs3.clone().unwrap(),
+                diff_p,
+            )
+        }
     }
 }
 
@@ -94,6 +90,26 @@ pub struct TargetResult {
     pub create_time: DateTime<Utc>,
 }
 
+impl TargetResult {
+    pub fn profit_sale_at(&self, ap: &ActivePriceResult) -> Option<f64> {
+        // todo
+        // let gas
+        // Ex: 12.5 = 12.5%
+        let sale_fee_percentage = self.slug.fee as f64 / 100.0 / 100.0;
+        let net_profit = (ap.price -  (ap.price * sale_fee_percentage)) - self.price;
+        return Some(net_profit);
+    }
+    pub fn profit_p_sale_at(&self, ap: &ActivePriceResult) -> Option<f64> {
+        // todo
+        // let gas
+        // Ex: 12.5 = 12.5%
+        let profit = self.profit_sale_at(ap);
+        let profit = (self.price + profit.unwrap_or_default()) / self.price * 100.0 - 100.0;
+        
+        return Some(profit.floor());
+    }
+}
+
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct ActivePriceResult {
     pub tx_hash: String,
@@ -112,10 +128,6 @@ impl SQLResult for CollResult {
     fn display(&self) -> String {
         format!("{}, sale fee={} ", self.slug, self.fee)
     }
-
-    // fn sale_at(&self,ap:ActivePriceResult) -> f64 {
-    //     (ap.price + ap.price * self.fee as f64 / 100.0)
-    // }
 }
 impl SQLResult for TargetResult {
     fn display(&self) -> String {
@@ -145,7 +157,12 @@ impl SQLResult for ActivePriceResult {
     fn display(&self) -> String {
         let times = self.trade_time.clone().to_string();
         let times = times.split(".").collect::<Vec<_>>();
-        format!("ActivePrice: {} , {:?} , {}", self.price, times.first().unwrap(),self.tx_hash)
+        format!(
+            "ActivePrice: {} , {:?} , {}",
+            self.price,
+            times.first().unwrap(),
+            self.tx_hash
+        )
     }
 }
 

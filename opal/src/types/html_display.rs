@@ -8,7 +8,6 @@ use crate::{
 pub struct HTMLDisplay {
     pub is_s_1: bool,
     pub fp: Option<FloorPriceResult>,
-    pub ap: Option<ActivePriceResult>,
     pub one: Option<StrategyOne>,
     pub target: TargetResult,
 }
@@ -82,30 +81,13 @@ impl HTMLDisplay {
             }
             </div>
             <div>
-            {
-                match self.ap.clone() {
-                    Some(x) => {
-                    html!{
-                        <div class="text-center">
-                            <p>
-                                <span class="text-green-500">
-                                    {x.display()}
-                                </span>
-                            </p>
-                        </div>
-                    }},
-                    None =>
-                    html!{
-                        <div class="text-center">
-                            <p>
-                                <span class="text-red-500">
-                                    {"No Active Price"}
-                                </span>
-                            </p>
-                        </div>
-                    },
-                }
-            }
+                <div class="text-center">
+                    <p>
+                        <span class="text-green-500">
+                            {self.target.compare_ap.clone().display()}
+                        </span>
+                    </p>
+                </div>
             </div>
             <div>
             {
@@ -148,6 +130,20 @@ impl HTMLDisplay {
                     },
                 }
             }
+            </div>
+            <div>
+                <p>
+                {concat_string!("Earn: ",
+                    match (self.target.clone(), self.target.compare_ap.clone()) {
+                        (t, ap) => t.profit_sale_at(&ap).unwrap_or_default(),
+                        }.to_string())}
+                </p>
+                <p>
+                {concat_string!("Earn_p: ",
+                    match (self.target.clone(), self.target.compare_ap.clone()) {
+                        (t, ap) => t.profit_p_sale_at(&ap).unwrap_or_default(),
+                        }.to_string(), " %")}
+                </p>
             </div>
             // {
                 // let cla = match i {

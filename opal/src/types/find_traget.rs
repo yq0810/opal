@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use log::debug;
 use multimap::MultiMap;
 
 use crate::{app::App, ActivePriceResult, FloorPriceResult, TargetResult, CollResult};
@@ -31,17 +32,36 @@ pub fn find_traget_from_profit(
             (Some(ax),Some(coll)) => {
                 let ap = ax.iter()
                                                       .cloned()
+                                                      .filter(|a_after| a_after.trade_time > target.trade_time)
                                                       .find(|a_after| {
-                    let pp = target.price; 
-                    let fee = coll.fee as f64 / 100.0;
-                    let diff_p = fee + profit_percentage as f64;
+                    // let pp = target.price; 
+                    // let fee = coll.fee as f64 / 100.0 / 100.0;
+                    // let diff_p = fee + profit_percentage as f64;
                     //todo
                     // let fp = f.price;
-                    let fp = a_after.price;
-                    let is_base_price_after= &a_after.trade_time > &target.trade_time && a_after.price > target.price;
-                    let is_diff_p = is_base_price_after && 
-                                           pp < (fp * ((100.0 - diff_p as f64 )/100.0));
-                    is_diff_p
+                    // let ap = a_after.price;
+                    // let is_base_price_after= &a_after.trade_time > &target.trade_time && a_after.price > target.price;
+                    // let profit = ap - pp;
+                    // let net_profit = profit - (ap * fee);
+                    // let profit_percentage = 1.0 + (profit_percentage as f64 / 100.0);
+                    // let is_diff_p = 
+                    //         is_base_price_after && 
+                    //         net_profit > pp * profit_percentage;
+                    let t = TargetResult {
+                        tx_hash: target.tx_hash.clone(),
+                        slug: coll.clone(),
+                        price: target.price.clone(),
+                        create_time: target.trade_time.clone(),
+                        compare_fp: None,
+                        compare_ap: a_after.clone(),
+                    };
+                    let p = t.profit_p_sale_at(&a_after);
+                    if p > Some(profit_percentage as f64) {
+                        let s = t.profit_sale_at(&a_after);
+                        debug!("{:?}, {:?} {:?}", p,s,target.price);
+
+                    }
+                    p > Some(profit_percentage as f64)
                 });
                 match ap {
                     Some(ap) => {

@@ -14,7 +14,7 @@ use crate::strategys::{One, OneMsg};
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
 use crate::{
     components::*, find_traget_from_floor_active, find_traget_from_profit, strategy_one,
-    ActivePriceResult, CollResult, SQLResult, SettingOption, TargetResult, HTMLDisplay,
+    ActivePriceResult, CollResult, HTMLDisplay, SQLResult, SettingOption, TargetResult,
 };
 
 const DB_CONFIG: &str = r#"
@@ -103,13 +103,13 @@ unsafe fn initialize_worker_if_missing() {
 }
 
 #[cfg(not(feature = "debug"))]
-fn timeout_handle(link: html::Scope<App> ) -> Timeout {
-    Timeout::new(2000,  move|| link.send_message(Msg::SearchStart(Some(30))))
-} 
+fn timeout_handle(link: html::Scope<App>) -> Timeout {
+    Timeout::new(2000, move || link.send_message(Msg::SearchStart(Some(30))))
+}
 #[cfg(feature = "debug")]
 fn timeout_handle() -> Timeout {
-    Timeout::new(2000, move || () )
-} 
+    Timeout::new(2000, move || ())
+}
 
 impl Component for App {
     type Message = Msg;
@@ -162,18 +162,14 @@ impl Component for App {
                 }
                 Err(_) => true,
             },
-            Msg::SearchStart(x) => {
-                match x {
-                    Some(x) => {
-                        self.is_busy = true;
-                        ctx.link().send_future(SearchMode::start(x));
-                        true
-                    }
-                    None => {
-                        true
-                    }
+            Msg::SearchStart(x) => match x {
+                Some(x) => {
+                    self.is_busy = true;
+                    ctx.link().send_future(SearchMode::start(x));
+                    true
                 }
-            }
+                None => true,
+            },
             Msg::UpdateFloor(results) => match results {
                 Ok(results) => {
                     results.iter().for_each(|x| {
@@ -240,12 +236,13 @@ impl Component for App {
                     .iter()
                     .map(|x| {
                         let a = match self.floor_price.get_vec(&x.slug.slug) {
-                            Some(xs) => {
-                                xs.iter().filter(|f| f.create_time > x.create_time)
-                                         .find(|f| f.price > x.price)
-                                    },
+                            Some(xs) => xs
+                                .iter()
+                                .filter(|f| f.create_time > x.create_time)
+                                .find(|f| f.price > x.price),
                             None => None,
-                        }.and_then(|x|Some(x.clone()));
+                        }
+                        .and_then(|x| Some(x.clone()));
 
                         let s_1 = strategy_one(
                             &x.create_time,
@@ -257,51 +254,20 @@ impl Component for App {
                         let is_s_1 = s_1.total_volume as i64 > self.config.s_one.volume_rate_value
                             && s_1.tx_count > self.config.s_one.tx_count_value;
 
-                        let b = match self.active_price.get_vec(&x.slug.slug) {
-                            Some(xs) => {
-                                xs.iter()
-                                 .filter(|a| a.trade_time > x.create_time)
-                                 .find(|a|a.price > x.price)
-                                        // if a.price > x.price && sum == "" {
-                                        //     self.success_count += 1;
-                                        //     let earn = a.price - x.price;
-                                        //     self.earn += &earn;
-
-                                        //     // one
-                                        //     if is_s_1 {
-                                        //         self.one_result.earn += &earn;
-                                        //         self.one_result.pass_count += 1;
-                                        //     }
-                                            //
-                                            // sum = format!(
-                                            //     "{} <> {} ✔ (Earn: {} ETH)",
-                                            //     sum,
-                                            //     a.display(),
-                                            //     earn
-                                            // );
-                            }
-                            None => None,
-                        }.and_then(|a|{
-                                            self.success_count += 1;
-                                            let earn = a.price - x.price;
-                                            self.earn += &earn;
-                                            if is_s_1 {
-                                                self.one_result.earn += &earn;
-                                                self.one_result.pass_count += 1;
-                                            }
-                            Some(a.clone())});
-                        // let s_1_display = if is_s_1 {
-                        //     format!("{:?} ✔", s_1)
-                        // } else {
-                        //     format!("{:?}", s_1)
-                        // };
+                        let earn = x.profit_sale_at(&x.compare_ap).unwrap();
+                        self.success_count += 1;
+                        self.earn += &earn;
+                        if is_s_1 {
+                            self.one_result.earn += &earn;
+                            self.one_result.pass_count += 1;
+                        }
                         HTMLDisplay {
-                            fp:a.clone(),
-                            ap:b.clone(),
+                            fp: a.clone(),
                             is_s_1: is_s_1.clone(),
                             one: Some(s_1.clone()),
                             target: x.clone(),
-                        }.new()
+                        }
+                        .new()
                     })
                     .collect::<Vec<_>>();
                 self.displayed_results = shows;
