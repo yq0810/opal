@@ -45,9 +45,10 @@ default = ["console_log", "log"]
 # default = []
 
 [profile.dev]
-debug = true
+debug-assertions = true
+
 [profile.release]
-debug = false
+debug-assertions = false
 lto = true
 opt-level = 's'
 panic = "abort"

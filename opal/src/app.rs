@@ -102,12 +102,12 @@ unsafe fn initialize_worker_if_missing() {
     }
 }
 
-#[cfg(not(feature = "debug"))]
+#[cfg(not(debug_assertions))]
 fn timeout_handle(_:html::Scope<App>) -> Timeout {
     Timeout::new(2000, move || ())
 }
 
-#[cfg(feature = "debug")]
+#[cfg(debug_assertions)]
 fn timeout_handle(link:html::Scope<App>) -> Timeout {
     Timeout::new(2000, move || link.send_message(Msg::SearchStart(Some(5))))
 }
