@@ -103,12 +103,13 @@ unsafe fn initialize_worker_if_missing() {
 }
 
 #[cfg(not(feature = "debug"))]
-fn timeout_handle(link: html::Scope<App>) -> Timeout {
-    Timeout::new(2000, move || link.send_message(Msg::SearchStart(Some(5))))
-}
-#[cfg(feature = "debug")]
-fn timeout_handle() -> Timeout {
+fn timeout_handle(_:html::Scope<App>) -> Timeout {
     Timeout::new(2000, move || ())
+}
+
+#[cfg(feature = "debug")]
+fn timeout_handle(link:html::Scope<App>) -> Timeout {
+    Timeout::new(2000, move || link.send_message(Msg::SearchStart(Some(5))))
 }
 
 impl Component for App {
