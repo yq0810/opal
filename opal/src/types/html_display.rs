@@ -10,6 +10,7 @@ pub struct HTMLDisplay {
     pub fp: Option<FloorPriceResult>,
     pub one: Option<StrategyOne>,
     pub target: TargetResult,
+    pub diff_p: i32,
 }
 
 impl HTMLDisplay {
@@ -27,7 +28,15 @@ impl HTMLDisplay {
             "border-l-[6px]",
             "border-blue-500",
         );
-        // let is_good =  result.contains("✔");
+        let (earn, earn_p) = {
+            match (self.target.clone(), self.target.compare_ap.clone()) {
+                (t, ap) => (
+                    t.profit_sale_at(&ap).unwrap_or_default(),
+                    t.profit_p_sale_at(&ap).unwrap_or_default(),
+                ),
+            }
+        };
+        let is_good =  earn_p as i32 >= self.diff_p ;
         html! {
             <div
                 class={
@@ -132,18 +141,10 @@ impl HTMLDisplay {
             }
             </div>
             <div>
-                <p>
-                {concat_string!("Earn: ",
-                    match (self.target.clone(), self.target.compare_ap.clone()) {
-                        (t, ap) => t.profit_sale_at(&ap).unwrap_or_default(),
-                        }.to_string())}
-                </p>
-                <p>
-                {concat_string!("Earn_p: ",
-                    match (self.target.clone(), self.target.compare_ap.clone()) {
-                        (t, ap) => t.profit_p_sale_at(&ap).unwrap_or_default(),
-                        }.to_string(), " %")}
-                </p>
+                
+                <p class={if is_good {"text-green-500"}else{"text-red-500"}}>
+                {concat_string!(
+                    "Profit ",earn.to_string()," ETH"," (",earn_p.to_string(),"%)")}</p>
             </div>
             // {
                 // let cla = match i {

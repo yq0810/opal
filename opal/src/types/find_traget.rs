@@ -54,6 +54,9 @@ pub fn find_traget_from_profit(
                         create_time: target.trade_time.clone(),
                         compare_fp: None,
                         compare_ap: a_after.clone(),
+                        gas_price: target.gas_price.clone(),
+                        gas_used: target.gas_used.clone(),
+
                     };
                     let p = t.profit_p_sale_at(&a_after);
                     if p > Some(profit_percentage as f64) {
@@ -72,6 +75,8 @@ pub fn find_traget_from_profit(
                             create_time: target.trade_time.clone(),
                             compare_fp: None,
                             compare_ap: ap.clone(),
+                            gas_price: target.gas_price.clone(),
+                            gas_used: target.gas_used.clone(),
                         })
 
                     },
@@ -108,6 +113,8 @@ pub fn find_traget_from_floor_active(
                             create_time: target.trade_time.clone(),
                             compare_fp: Some(f),
                             compare_ap: target.clone(),
+                            gas_price: target.gas_price.clone(),
+                            gas_used: target.gas_used.clone(),
                         })
                     } else {
                         None

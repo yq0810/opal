@@ -84,6 +84,8 @@ pub struct TargetResult {
     pub tx_hash: String,
     pub slug: CollResult,
     pub price: f64,
+    pub gas_price: f64,
+    pub gas_used: i64,
     pub compare_fp: Option<FloorPriceResult>,
     pub compare_ap: ActivePriceResult,
     #[serde(with = "my_date_format")]
@@ -91,20 +93,21 @@ pub struct TargetResult {
 }
 
 impl TargetResult {
+    pub fn total_cost(&self,ap: &ActivePriceResult) -> f64 {
+        let buy_price = self.price;
+        let block_cost = self.gas_price * self.gas_used as f64 * 0.000000001;
+        let sale_fee_percentage = ap.price * self.slug.fee as f64 / 100.0 / 100.0;
+        buy_price + block_cost + sale_fee_percentage
+    }
+
     pub fn profit_sale_at(&self, ap: &ActivePriceResult) -> Option<f64> {
-        // todo
-        // let gas
-        // Ex: 12.5 = 12.5%
-        let sale_fee_percentage = self.slug.fee as f64 / 100.0 / 100.0;
-        let net_profit = (ap.price -  (ap.price * sale_fee_percentage)) - self.price;
+        let net_profit = ap.price - self.total_cost(ap);
         return Some(net_profit);
     }
+
     pub fn profit_p_sale_at(&self, ap: &ActivePriceResult) -> Option<f64> {
-        // todo
-        // let gas
-        // Ex: 12.5 = 12.5%
         let profit = self.profit_sale_at(ap);
-        let profit = (self.price + profit.unwrap_or_default()) / self.price * 100.0 - 100.0;
+        let profit = (self.price + profit.unwrap_or_default()) / self.total_cost(ap) * 100.0 - 100.0;
         
         return Some(profit.floor());
     }
@@ -115,6 +118,8 @@ pub struct ActivePriceResult {
     pub tx_hash: String,
     pub slug: String,
     pub price: f64,
+    pub gas_price: f64,
+    pub gas_used:i64,
     #[serde(with = "my_date_format")]
     pub trade_time: DateTime<Utc>,
 }
@@ -132,11 +137,15 @@ impl SQLResult for CollResult {
 impl SQLResult for TargetResult {
     fn display(&self) -> String {
         format!(
-            "Target: {} , {} ETH, {} , {}",
+            "Target: {} , {} ETH, {} , {}, Gas Cost: {} Gwei * {} = {} ETH",
             self.slug.display(),
             self.price,
             self.create_time,
             self.tx_hash,
+            self.gas_price,
+            self.gas_used,
+            self.gas_price * self.gas_used as f64 * 0.000000001,
+
             // if self.compare_fp.is_some(){
             //     self.compare_fp.clone().unwrap().display()
             // }else{
