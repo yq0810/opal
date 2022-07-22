@@ -2,13 +2,15 @@ use concat_string::concat_string;
 use yew::{classes, html, Html};
 
 use crate::{
-    app::StrategyResult, ActivePriceResult, FloorPriceResult, SQLResult, StrategyOne, TargetResult,
+    ActivePriceResult, FloorPriceResult, SQLResult, StrategyOne, StrategyTwo, TargetResult,
 };
 
 pub struct HTMLDisplay {
     pub is_s_1: bool,
+    pub is_s_2: bool,
     pub fp: Option<FloorPriceResult>,
     pub one: Option<StrategyOne>,
+    pub two: Option<StrategyTwo>,
     pub target: TargetResult,
     pub diff_p: i32,
 }
@@ -36,7 +38,7 @@ impl HTMLDisplay {
                 ),
             }
         };
-        let is_good =  earn_p as i32 >= self.diff_p ;
+        let is_good = earn_p as i32 >= self.diff_p;
         html! {
             <div
                 class={
@@ -141,7 +143,49 @@ impl HTMLDisplay {
             }
             </div>
             <div>
-                
+            {
+                match self.two.clone() {
+                    Some(x) => {
+                    html!{
+                        <div class="text-center">
+                            <p>
+                               {
+                                if self.is_s_2 {
+                                    html!{
+                                        <span class="text-blue-500">
+                                            {format!("{:?}",x)}
+                                        </span>
+                                    }
+
+                                }else{
+                                    html!{
+
+                                        <span class="text-red-500">
+                                            {format!("{:?}",x)}
+                                        </span>
+                                    }
+
+                                }
+
+                               }
+                            </p>
+                        </div>
+                    }},
+                    None =>
+                    html!{
+                        <div class="text-center">
+                            <p>
+                                <span class="text-red-500">
+                                    {"No One "}
+                                </span>
+                            </p>
+                        </div>
+                    },
+                }
+            }
+            </div>
+            <div>
+
                 <p class={if is_good {"text-green-500"}else{"text-red-500"}}>
                 {concat_string!(
                     "Profit ",earn.to_string()," ETH"," (",earn_p.to_string(),"%)")}</p>

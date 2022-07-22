@@ -1,4 +1,4 @@
-use crate::{components::*, SettingOption, SettingDuration};
+use crate::{func_components::*, SettingDuration, SettingOption};
 use web_sys::{HtmlInputElement, KeyboardEvent, Node};
 use yew::{classes, function_component, functional::*, html, Callback, NodeRef, Properties};
 
@@ -7,14 +7,13 @@ pub struct StrategyInputProps {
     // pub label_text:String,
     // pub node_ref: NodeRef,
     // pub on_change: Box<Callback<String>>,
-    pub option : SettingOption,
+    pub option: SettingOption,
     pub first_load: bool,
     pub is_busy: bool,
 }
 
 #[function_component(StrategyInput)]
 pub fn strategy_input(props: &StrategyInputProps) -> Html {
-
     let search_bar_wrap_classes = classes!("md:w-3/4", "w-11/12", "min-w-0", "max-w-[840px]",);
 
     let search_bar_classes = classes!(
@@ -42,7 +41,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         "rounded-md",
         "border-blue-500"
     );
-    let input_classes = "focus:outline-none rounded-none rounded bg-gray-50 border border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500 block flex-1 min-w-0 w-full text-sm border-gray-300 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+    let input_classes = "focus:outline-none rounded-none rounded bg-gray-50 border border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500 block flex-1 w-12 text-sm border-gray-300 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
     let input_classes_duration = "focus:outline-none rounded-none rounded-r-lg bg-gray-50 border border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500 block flex-1 min-w-0 w-full text-sm border-gray-300 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
     let toggle_classes = classes!(
         "h-10",
@@ -86,7 +85,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
                 || ()
             });
             let input_duration_value_ref = input_duration_value_ref.clone();
-            let duration_ref_o = option.duration.and_then(|x|Some(x.data_ref.clone()));
+            let duration_ref_o = option.duration.and_then(|x| Some(x.data_ref.clone()));
             match duration_ref_o {
                 Some(x) => {
                     use_effect(move || {
@@ -96,7 +95,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
                         }
                         || ()
                     });
-                },
+                }
                 None => (),
             }
         }
@@ -104,16 +103,20 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
 
     let oninput_duration_value = {
         let input_ref = input_duration_value_ref.clone();
-        let duration = props.option.clone().duration.unwrap();
-        move |_e| {
-            let s = input_ref
-                .cast::<HtmlInputElement>()
-                .map(|input| input.value())
-                .unwrap_or_default();
-            let nx = s.parse::<i32>().unwrap_or_default();
-            let back = duration.data_ref.set_value(nx);
-            duration.on_change.emit(back)
-        }
+        let duration_o = props.option.clone().duration;
+        let duration = match duration_o {
+            Some(duration) => Some(move |_e| {
+                let s = input_ref
+                    .cast::<HtmlInputElement>()
+                    .map(|input| input.value())
+                    .unwrap_or_default();
+                let nx = s.parse::<i32>().unwrap_or_default();
+                let back = duration.data_ref.set_value(nx);
+                duration.on_change.emit(back)
+            }),
+            None => None,
+        };
+        duration
     };
 
     let oninput = {
@@ -130,26 +133,45 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         }
     };
     let toggle_onclick = {
-        let duration = props.option.clone().duration.unwrap();
-        move |_e| {
-            let back = match duration.data_ref {
-                crate::SettingDuration::Days(x) => SettingDuration::Hours(x),
-                crate::SettingDuration::Hours(x) => SettingDuration::Days(x),
-            };
-            duration.on_change.emit(back)
+        let duration_o = props.option.clone().duration;
+        match duration_o {
+            Some(duration) => Some(move |_e| {
+                let back = match duration.data_ref {
+                    crate::SettingDuration::Days(x) => SettingDuration::Hours(x),
+                    crate::SettingDuration::Hours(x) => SettingDuration::Days(x),
+                };
+                duration.on_change.emit(back)
+            }),
+            None => None,
         }
     };
-    let time_duration = props.option.duration.clone().unwrap().data_ref.Display();
+    let (is_d, time_duration) = match props.option.duration.clone() {
+        Some(d) => (true, d.data_ref.Display()),
+        None => (false, "".to_string()),
+    };
 
     html! {
         <div class={search_bar_wrap_classes}>
             <div class={search_bar_classes}>
                 <button class={toggle_classes.clone()} style="" disabled=true >{props.option.input.label_text.clone()}</button>
                 <input class={input_classes} type="text" ref={input_ref} {oninput} />
-                <button class={toggle_classes_o} onclick={toggle_onclick}>
-                    {time_duration}
-                </button>
-                <input class={input_classes_duration} type="text" ref={input_duration_value_ref} oninput={oninput_duration_value} />
+                {
+                    if is_d {
+                        let oninput_duration_value = oninput_duration_value.clone().unwrap();
+                        let toggle_onclick = toggle_onclick.clone().unwrap();
+                        html! {
+                            <div class="flex">
+                                <button class={toggle_classes_o} onclick={toggle_onclick}>
+                                    {time_duration}
+                                </button>
+                                <input class={input_classes_duration} type="text" ref={input_duration_value_ref} oninput={oninput_duration_value}/>
+                            </div>
+                        }
+                    } else {
+                        html! {}
+                    }
+
+                }
             </div>
         </div>
     }

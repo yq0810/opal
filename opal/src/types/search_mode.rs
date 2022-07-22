@@ -1,9 +1,8 @@
-use crate::{app::Msg, types::unit::my_date_format, Query};
+use crate::{pages::Msg, types::unit::my_date_format, Query};
 use chrono::{DateTime, Utc};
 use futures::Future;
 use opal_derive::Sqlgogo;
 use serde::Deserialize;
-use sql_js_httpvfs_rs::*;
 use wasm_bindgen::JsValue;
 
 #[cfg(feature = "console_log")]
@@ -75,6 +74,7 @@ pub trait SQLResult {
 pub struct FloorPriceResult {
     pub slug: String,
     pub price: f64,
+    pub total_volume: f64,
     #[serde(with = "my_date_format")]
     pub create_time: DateTime<Utc>,
 }
@@ -93,7 +93,7 @@ pub struct TargetResult {
 }
 
 impl TargetResult {
-    pub fn total_cost(&self,ap: &ActivePriceResult) -> f64 {
+    pub fn total_cost(&self, ap: &ActivePriceResult) -> f64 {
         let buy_price = self.price;
         let block_cost = self.gas_price * self.gas_used as f64 * 0.000000001;
         let sale_fee_percentage = ap.price * self.slug.fee as f64 / 100.0 / 100.0;
@@ -107,8 +107,9 @@ impl TargetResult {
 
     pub fn profit_p_sale_at(&self, ap: &ActivePriceResult) -> Option<f64> {
         let profit = self.profit_sale_at(ap);
-        let profit = (self.price + profit.unwrap_or_default()) / self.total_cost(ap) * 100.0 - 100.0;
-        
+        let profit =
+            (self.price + profit.unwrap_or_default()) / self.total_cost(ap) * 100.0 - 100.0;
+
         return Some(profit.floor());
     }
 }
@@ -119,7 +120,7 @@ pub struct ActivePriceResult {
     pub slug: String,
     pub price: f64,
     pub gas_price: f64,
-    pub gas_used:i64,
+    pub gas_used: i64,
     #[serde(with = "my_date_format")]
     pub trade_time: DateTime<Utc>,
 }
@@ -145,7 +146,6 @@ impl SQLResult for TargetResult {
             self.gas_price,
             self.gas_used,
             self.gas_price * self.gas_used as f64 * 0.000000001,
-
             // if self.compare_fp.is_some(){
             //     self.compare_fp.clone().unwrap().display()
             // }else{

@@ -1,3 +1,4 @@
+use concat_string::concat_string;
 use gloo::timers::callback::Timeout;
 use multimap::MultiMap;
 use sql_js_httpvfs_rs::*;
@@ -10,13 +11,15 @@ use yew::prelude::*;
 #[allow(unused_imports)]
 use log::debug;
 
-use crate::strategys::{One, OneMsg};
+use crate::func_components::*;
+use crate::strategys::{One, OneMsg, Two, TwoMsg};
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
 use crate::{
-    components::*, find_traget_from_floor_active, find_traget_from_profit, strategy_one,
-    ActivePriceResult, CollResult, HTMLDisplay, SQLResult, SettingOption, TargetResult,
+    find_traget_from_floor_active, find_traget_from_profit, strategy_one, strategy_two,
+    ActivePriceResult, CollResult, HTMLDisplay, SQLResult, TargetResult,
 };
 
+use crate::components::setting_card::SettingCard;
 const DB_CONFIG: &str = r#"
 {
     "from": "inline",
@@ -45,8 +48,7 @@ pub enum Msg {
     ),
     ToggleSearchType,
     ToggleThemeMode(ThemeMode),
-    OneOptionUpdate(OneMsg),
-    // TimerDown,
+    OptionUpdate(), // TimerDown,
 }
 impl Msg {}
 
@@ -56,9 +58,10 @@ pub enum ThemeMode {
     Light,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Config {
     pub s_one: One,
+    pub s_two: Two,
 }
 
 #[derive(Clone, PartialEq, Debug, Default)]
@@ -67,7 +70,7 @@ pub struct StrategyResult {
     pub earn: f64,
 }
 
-pub struct App {
+pub struct Index {
     mode: SearchMode,
     first_load: bool,
     is_busy: bool,
@@ -103,16 +106,16 @@ unsafe fn initialize_worker_if_missing() {
 }
 
 #[cfg(not(debug_assertions))]
-fn timeout_handle(_:html::Scope<App>) -> Timeout {
+fn timeout_handle(_: html::Scope<App>) -> Timeout {
     Timeout::new(2000, move || ())
 }
 
 #[cfg(debug_assertions)]
-fn timeout_handle(link:html::Scope<App>) -> Timeout {
+fn timeout_handle(link: html::Scope<Index>) -> Timeout {
     Timeout::new(2000, move || link.send_message(Msg::SearchStart(Some(5))))
 }
 
-impl Component for App {
+impl Component for Index {
     type Message = Msg;
     type Properties = ();
 
@@ -126,9 +129,10 @@ impl Component for App {
             timeout_handle(link)
         };
         let mut config = Config::default();
-        config.s_one.volume_rate_value = 300;
+        config.s_one.volume_rate_value = 30;
+        config.s_two.volume_total_value = 12500.0;
         Self {
-            mode: SearchMode::T2,
+            mode: SearchMode::T1,
             first_load: true,
             is_busy: false,
             displayed_results: SearchResults::default(),
@@ -252,8 +256,10 @@ impl Component for App {
                             &self.config.s_one.tx_count_duration.to_duration(),
                             &self.active_price,
                         );
+                        let s_2 = strategy_two(&x.create_time, &&x.slug.slug, &self.floor_price);
                         let is_s_1 = s_1.total_volume as i64 > self.config.s_one.volume_rate_value
                             && s_1.tx_count > self.config.s_one.tx_count_value;
+                        let is_s_2 = s_2.total_volume as f64 > self.config.s_two.volume_total_value;
 
                         let earn = x.profit_sale_at(&x.compare_ap).unwrap();
                         self.success_count += 1;
@@ -265,7 +271,9 @@ impl Component for App {
                         HTMLDisplay {
                             fp: a.clone(),
                             is_s_1: is_s_1.clone(),
+                            is_s_2: is_s_2.clone(),
                             one: Some(s_1.clone()),
+                            two: Some(s_2.clone()),
                             target: x.clone(),
                             diff_p: p.clone(),
                         }
@@ -329,23 +337,7 @@ impl Component for App {
                     }
                 }
             }
-            Msg::OneOptionUpdate(option_inputs) => {
-                match option_inputs {
-                    OneMsg::UpdateVolumeRateValue(v) => {
-                        self.config.s_one.volume_rate_value = v.unwrap_or_default()
-                    }
-                    OneMsg::UpdateVolumeRateDuration(v) => {
-                        self.config.s_one.volume_rate_duration = v.unwrap_or_default()
-                    }
-                    OneMsg::UpdateTxCountValue(v) => {
-                        self.config.s_one.tx_count_value = v.unwrap_or_default()
-                    }
-                    OneMsg::UpdateTxCountDuration(v) => {
-                        self.config.s_one.tx_count_duration = v.unwrap_or_default()
-                    }
-                };
-                true
-            }
+            Msg::OptionUpdate() => todo!(),
         }
     }
 
@@ -361,16 +353,6 @@ impl Component for App {
             "bg-slate-100",
             "overflow-y-auto",
         );
-        let title_classes = classes!(
-            "text-6xl",
-            "pt-16",
-            "pb-6",
-            "font-title",
-            "dark:text-slate-50",
-            "text-slate-900",
-            "px-5",
-            "my-10"
-        );
 
         let text_ref = NodeRef::default();
 
@@ -379,35 +361,32 @@ impl Component for App {
         let on_toggle = link.callback(|_| Msg::ToggleSearchType);
         let placeholder: &'static str = self.mode.placeholder_text();
 
-        let option = SettingOption::new::<OneMsg>(
-            |x| OneMsg::UpdateVolumeRateValue(x.parse().ok()),
-            link,
-            self.config.s_one.volume_rate_value.to_string().clone(),
-            "VolumeRate:".to_string(),
-            |x| OneMsg::UpdateVolumeRateDuration(Some(x)),
-            self.config.s_one.volume_rate_duration.clone(),
-        );
-
-        let option2 = SettingOption::new::<OneMsg>(
-            |x| OneMsg::UpdateTxCountValue(x.parse().ok()),
-            link,
-            self.config.s_one.tx_count_value.to_string().clone(),
-            "TxCount:".to_string(),
-            |x| OneMsg::UpdateTxCountDuration(Some(x)),
-            self.config.s_one.tx_count_duration.clone(),
-        );
-
-        let options = vec![option, option2];
         let debug = format!("{:?}", self.config);
         let deubug_display = debug
             .split(",")
             .flat_map(|x| x.split("{").map(|x| x.to_string().replace("}", "")))
             .collect::<Vec<_>>();
+        let setting_card_callback: Callback<u32> = link.callback(|_| Msg::OptionUpdate());
 
         html! {
             <div class={root_classes}>
+                <SearchBar
+                    text_ref={text_ref.clone()}
+                    on_search={on_search.clone()}
+                    {placeholder}
+                    on_toggle={on_toggle.clone()}
+                    toggle_text={self.mode.button_text()}
+                    first_load={self.first_load} is_busy={self.is_busy}
+                />
+                <SettingCard first_load={self.first_load.clone()} config={self.config.clone()} is_busy={self.is_busy} />
+                // <SearchCollResult
+                //     text_ref={text_ref.clone()}
+                //     on_search={on_search.clone()}
+                //     {placeholder}
+                //     on_toggle={on_toggle.clone()}
+                //     toggle_text={self.mode.button_text()}
+                //     first_load={self.first_load} is_busy={self.is_busy}/>
                 <div class="flex inherit top-0 right-0 justify-end my-10">
-                    <p class={title_classes.clone()}>{"NFT Simulation"}</p>
                     <div class="flex flex-col  text-white">
                         { deubug_display.iter().map(|d| {
                                 html! {
@@ -418,21 +397,11 @@ impl Component for App {
                             }).collect::<Html>()
                         }
                     </div>
-                    <div class="flex-col p-5 block p-6 max-w-sm bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 ">
-                        <p class="text-2xl font-title dark:text-slate-50 text-slate-900 px-5">
-                            {"Strategy 1 option"}
-                        </p>
-                        { options.iter().map(|option| {
-                            html!{
-                                <div class="mx">
-                                    <StrategyInput {option} first_load={self.first_load} is_busy={self.is_busy}/>
-                                </div>
-                            }
-                        }).collect::<Html>()
-                        }
-                    </div>
                 </div>
-                <SearchBar {text_ref} {on_search} {placeholder} {on_toggle} toggle_text={self.mode.button_text()} first_load={self.first_load} is_busy={self.is_busy}/>
+                // <div class="text-white">
+                //     <p>{concat_string!("fp data:",self.floor_price.len().to_string(),"s")}</p>
+                //     <p>{concat_string!("ap data:",self.active_price.len().to_string(),"s")}</p>
+                // </div>
                 if self.is_busy {
                     <SpinnerIcon />
                 }
@@ -442,4 +411,10 @@ impl Component for App {
             </div>
         }
     }
+
+    fn changed(&mut self, ctx: &Context<Self>) -> bool {
+        true
+    }
+
+    fn destroy(&mut self, ctx: &Context<Self>) {}
 }

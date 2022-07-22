@@ -1,4 +1,4 @@
-use crate::components::*;
+use crate::func_components::*;
 use web_sys::{HtmlInputElement, KeyboardEvent};
 use yew::{classes, function_component, functional::*, html, Callback, NodeRef, Properties};
 

@@ -1,9 +1,7 @@
 use concat_string::concat_string;
 use yew::{classes, function_component, html, Html, Properties};
 
-use crate::{SearchResults, app::StrategyResult};
-
-
+use crate::{pages::index::StrategyResult, SearchResults};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct DisplayedResultsProps {
@@ -11,7 +9,7 @@ pub struct DisplayedResultsProps {
     pub success_count: i32,
     pub earn: f64,
     pub one: StrategyResult,
-    pub mode_name : String,
+    pub mode_name: String,
 }
 
 #[function_component(DisplayedResults)]
@@ -130,11 +128,11 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
             </div>
             <hr/>
             <div class={state_result_class}>
-            <div class="px-2">
-                <p>
-                    {"Strategy 1 Result"}
-                </p>
-            </div>
+                <div class="px-2">
+                    <p>
+                        {"Strategy 1 Result"}
+                    </p>
+                </div>
                 <div
                     class={
                         let mut c = state_card_classes.clone();
@@ -168,7 +166,7 @@ pub fn displayed_results(props: &DisplayedResultsProps) -> Html {
                 </div>
             </div>
             <hr/>
-           
+
             { props.to_display.iter().map(|result| {
                 html!{
                     result.clone()

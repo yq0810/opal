@@ -2,7 +2,7 @@ use std::default;
 
 use chrono::{DateTime, Duration, Utc};
 
-use crate::{app::Msg, SettingDuration};
+use crate::{components::setting_card::Msg, SettingDuration};
 
 use super::Strategy;
 
@@ -20,7 +20,7 @@ impl Strategy for OneMsg {
     }
 }
 
-#[derive(Clone, Debug,Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct One {
     pub volume_rate_value: i64,
     pub volume_rate_duration: SettingDuration,

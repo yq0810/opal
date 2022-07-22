@@ -1,4 +1,4 @@
-use crate::{strategys::slug_active_in_duration, ActivePriceResult};
+use crate::{strategys::slug_active_in_duration, ActivePriceResult, FloorPriceResult, find_first_floor_price};
 use chrono::{DateTime, Duration, Utc};
 use multimap::MultiMap;
 
@@ -27,5 +27,20 @@ pub fn strategy_one(
             .and_then(|x| Some(x.len() as i64))
             .unwrap_or_default(),
         total_volume: total_volume.unwrap_or_default(),
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct StrategyTwo {
+    pub total_volume: f64,
+}
+pub fn strategy_two(
+    date_time: &DateTime<Utc>,
+    slug: &String,
+    fp_map: &MultiMap<String, FloorPriceResult>,
+) -> StrategyTwo {
+    let duration_tx = find_first_floor_price(slug,fp_map,date_time);
+    StrategyTwo {
+        total_volume: duration_tx.map(|x| x.total_volume).unwrap_or_default(),
     }
 }

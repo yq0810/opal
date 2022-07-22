@@ -1,9 +1,10 @@
-mod app;
-use app::*;
-mod components;
+pub mod components;
+mod func_components;
 mod strategys;
 // pub mod r#type;
+mod pages;
 pub mod types;
+use pages::Index;
 pub use types::*;
 
 // pub mod r#type;
@@ -17,7 +18,7 @@ fn main() {
         use log::Level;
         console_log::init_with_level(Level::Trace).expect("error initializing log");
     }
-    yew::start_app::<App>();
+    yew::start_app::<Index>();
 }
 
 #[cfg(test)]
@@ -26,9 +27,5 @@ mod test_super {
     use super::*;
 
     #[test]
-    fn test_() {
-        
-        
-        
-    }
+    fn test_() {}
 }
