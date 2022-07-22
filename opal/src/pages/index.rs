@@ -12,7 +12,7 @@ use yew::prelude::*;
 use log::debug;
 
 use crate::func_components::*;
-use crate::strategys::{One, OneMsg, Two, TwoMsg};
+use crate::strategys::{One, OneMsg, StrategyConfig, Two, TwoMsg};
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
 use crate::{
     find_traget_from_floor_active, find_traget_from_profit, strategy_one, strategy_two,
@@ -48,7 +48,7 @@ pub enum Msg {
     ),
     ToggleSearchType,
     ToggleThemeMode(ThemeMode),
-    OptionUpdate(), // TimerDown,
+    OptionUpdate(Config),
 }
 impl Msg {}
 
@@ -60,8 +60,7 @@ pub enum ThemeMode {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Config {
-    pub s_one: One,
-    pub s_two: Two,
+    pub strategy: StrategyConfig,
 }
 
 #[derive(Clone, PartialEq, Debug, Default)]
@@ -129,8 +128,8 @@ impl Component for Index {
             timeout_handle(link)
         };
         let mut config = Config::default();
-        config.s_one.volume_rate_value = 30;
-        config.s_two.volume_total_value = 12500.0;
+        config.strategy.s_one.volume_rate_value = 30;
+        config.strategy.s_two.volume_total_value = 12500.0;
         Self {
             mode: SearchMode::T1,
             first_load: true,
@@ -252,14 +251,21 @@ impl Component for Index {
                         let s_1 = strategy_one(
                             &x.create_time,
                             &&x.slug.slug,
-                            &self.config.s_one.volume_rate_duration.to_duration(),
-                            &self.config.s_one.tx_count_duration.to_duration(),
+                            &self
+                                .config
+                                .strategy
+                                .s_one
+                                .volume_rate_duration
+                                .to_duration(),
+                            &self.config.strategy.s_one.tx_count_duration.to_duration(),
                             &self.active_price,
                         );
                         let s_2 = strategy_two(&x.create_time, &&x.slug.slug, &self.floor_price);
-                        let is_s_1 = s_1.total_volume as i64 > self.config.s_one.volume_rate_value
-                            && s_1.tx_count > self.config.s_one.tx_count_value;
-                        let is_s_2 = s_2.total_volume as f64 > self.config.s_two.volume_total_value;
+                        let is_s_1 = s_1.total_volume as i64
+                            > self.config.strategy.s_one.volume_rate_value
+                            && s_1.tx_count > self.config.strategy.s_one.tx_count_value;
+                        let is_s_2 =
+                            s_2.total_volume as f64 > self.config.strategy.s_two.volume_total_value;
 
                         let earn = x.profit_sale_at(&x.compare_ap).unwrap();
                         self.success_count += 1;
@@ -337,7 +343,10 @@ impl Component for Index {
                     }
                 }
             }
-            Msg::OptionUpdate() => todo!(),
+            Msg::OptionUpdate(config) => {
+                self.config = config;
+                true
+            }
         }
     }
 
@@ -366,7 +375,7 @@ impl Component for Index {
             .split(",")
             .flat_map(|x| x.split("{").map(|x| x.to_string().replace("}", "")))
             .collect::<Vec<_>>();
-        let setting_card_callback: Callback<u32> = link.callback(|_| Msg::OptionUpdate());
+        let setting_card_callback: Callback<Config> = link.callback(|c| Msg::OptionUpdate(c));
 
         html! {
             <div class={root_classes}>
@@ -378,7 +387,7 @@ impl Component for Index {
                     toggle_text={self.mode.button_text()}
                     first_load={self.first_load} is_busy={self.is_busy}
                 />
-                <SettingCard first_load={self.first_load.clone()} config={self.config.clone()} is_busy={self.is_busy} />
+                <SettingCard onupdate={setting_card_callback} first_load={self.first_load.clone()} config={self.config.clone()} is_busy={self.is_busy} />
                 // <SearchCollResult
                 //     text_ref={text_ref.clone()}
                 //     on_search={on_search.clone()}

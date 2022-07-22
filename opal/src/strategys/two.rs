@@ -2,15 +2,14 @@ use std::default;
 
 use chrono::{DateTime, Duration, Utc};
 
-use crate::{components::setting_card::Msg, SettingDuration};
+use crate::{components::strategy_options::Msg, SettingCallback, SettingDuration};
 
-use super::Strategy;
-
+#[derive(Clone, Debug, PartialEq)]
 pub enum TwoMsg {
     UpdateVolumeTotalValue(Option<f64>),
 }
 
-impl Strategy for TwoMsg {
+impl SettingCallback<Msg> for TwoMsg {
     fn msgFn() -> Box<dyn Fn(Self) -> Msg> {
         let f = |x| -> Msg { Msg::TwoOptionUpdate(x) };
         Box::new(f)

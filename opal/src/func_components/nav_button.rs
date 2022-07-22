@@ -1,4 +1,4 @@
-use yew::{function_component, html, props, Callback, Html, Properties};
+use yew::{function_component, html, Callback, Properties};
 
 use super::SvgIcons;
 use crate::func_components::SvgIcon;

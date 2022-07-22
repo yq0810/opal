@@ -1,19 +1,19 @@
-use crate::func_components::{NavButton, NavButtonProps, StrategyInput, SvgIcons};
+use crate::components::strategy_options::StrategyOptions;
+use crate::func_components::{NavButton, NavButtonProps, SvgIcons};
 use crate::pages::Config;
-use crate::strategys::{OneMsg, TwoMsg};
+use crate::strategys::{OneMsg, StrategyConfig, TwoMsg};
 use crate::SettingOption;
 use yew::html::Scope;
-use yew::{html, Component, Context, Html, Properties};
+use yew::{html, Callback, Component, Context, Html, Properties};
 
 pub enum Msg {
     ActiveTab(u32),
-    OneOptionUpdate(OneMsg),
-    TwoOptionUpdate(TwoMsg),
+    StrategyConfigUpdate(StrategyConfig),
 }
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
-    // pub onupdate: Callback<u32>,
+    pub onupdate: Callback<Config>,
     // pub current_page: Option<u32>,
     pub first_load: bool,
     pub is_busy: bool,
@@ -26,64 +26,48 @@ pub struct SettingCard {
 }
 
 fn button_list(link: &Scope<SettingCard>, active_tab: u32) -> Vec<NavButtonProps> {
-    let home = {
+    let b1 = {
         let index = 0;
         NavButtonProps {
-            name: "Home",
-            svg: SvgIcons::Home,
+            name: "Funding Rules",
+            svg: SvgIcons::Circle(1),
             index: index.clone(),
             is_active: if active_tab == index { true } else { false },
             onclick: link.callback(move |_| Msg::ActiveTab(index)),
         }
     };
-    let h2 = {
+    let b2 = {
         let index = 1;
         NavButtonProps {
-            name: "Home",
-            svg: SvgIcons::Bookmarks,
+            name: "Target Area",
+            svg: SvgIcons::Circle(2),
             index: index.clone(),
             is_active: if active_tab == index { true } else { false },
             onclick: link.callback(move |_| Msg::ActiveTab(index)),
         }
     };
-    vec![home, h2]
+    let b3 = {
+        let index = 2;
+        NavButtonProps {
+            name: "Trigger Condition",
+            svg: SvgIcons::Circle(3),
+            index: index.clone(),
+            is_active: if active_tab == index { true } else { false },
+            onclick: link.callback(move |_| Msg::ActiveTab(index)),
+        }
+    };
+    let b4 = {
+        let index = 3;
+        NavButtonProps {
+            name: "Execution Strategy",
+            svg: SvgIcons::Circle(4),
+            index: index.clone(),
+            is_active: if active_tab == index { true } else { false },
+            onclick: link.callback(move |_| Msg::ActiveTab(index)),
+        }
+    };
+    vec![b1, b2, b3, b4]
 }
-
-fn option_list(link: &Scope<SettingCard>, config: &Config) -> Vec<SettingOption> {
-    let option = SettingOption::new::<OneMsg>(
-        |x| OneMsg::UpdateVolumeRateValue(x.parse().ok()),
-        link,
-        config.s_one.volume_rate_value.to_string().clone(),
-        "VolumeRate:".to_string(),
-        Some((
-            |x| OneMsg::UpdateVolumeRateDuration(Some(x)),
-            config.s_one.volume_rate_duration.clone(),
-        )),
-    );
-
-    let option2 = SettingOption::new::<OneMsg>(
-        |x| OneMsg::UpdateTxCountValue(x.parse().ok()),
-        link,
-        config.s_one.tx_count_value.to_string().clone(),
-        "TxCount:".to_string(),
-        Some((
-            |x| OneMsg::UpdateTxCountDuration(Some(x)),
-            config.s_one.tx_count_duration.clone(),
-        )),
-    );
-
-    let option3 = SettingOption::new::<TwoMsg>(
-        |x| TwoMsg::UpdateVolumeTotalValue(x.parse().ok()),
-        link,
-        config.s_two.volume_total_value.to_string().clone(),
-        "TotalVolume:".to_string(),
-        None,
-    );
-
-    let options = vec![option, option2, option3];
-    options
-}
-
 impl Component for SettingCard {
     type Message = Msg;
     type Properties = Props;
@@ -102,58 +86,45 @@ impl Component for SettingCard {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let props = ctx.props();
-        if props.first_load {
-            {}
-        }
         let select_tab = self.active_tab;
         let dynamic_css = { format!(r#"transform: translateY(calc(100% * {select_tab}))"#) };
         let nav_buttons = button_list(ctx.link(), self.active_tab);
-        let strategy_inputs = option_list(ctx.link(), &props.config);
+        let strategy_config_onupdate = {
+            ctx.link()
+                .callback(|config| Msg::StrategyConfigUpdate(config))
+        };
         html! {
             // card board
-            <div class="rounded-md antialiased bg-gray-200 p-8">
-                <div class="flex">
-                    //boutton list
-                    <div class="flex justify-center">
-                        <nav id="nav" class="w-56 relative">
-                            <span
-                                class="absolute h-10 w-40 bg-white rounded-lg shadow ease-out transition-transform transition-medium"
-                                style={dynamic_css}/>
-                            <ul class="relative">
-                                { nav_buttons.into_iter().map(|props| {
-                                    html! {
-                                        <li class="relative">
-                                            <NavButton name={props.name}
-                                                    svg={props.svg}
-                                                    index={props.index}
-                                                    is_active={props.is_active}
-                                                    onclick={props.onclick}
-                                                        />
-                                        </li>
-                                }
-                                }).collect::<Html>()}
-                            </ul>
-                        </nav>
-                    </div>
-                    //tab
-                    <div>
-                        {match self.active_tab {
-                            0 => html! {
-                                <div class="flex-col p-5 block p-6 max-w-sm bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 ">
-                                    <p class="text-2xl font-title dark:text-slate-50 text-slate-900 px-5">
-                                        {"Strategy option"}
-                                    </p>
-                                    { strategy_inputs.iter().map(|option| {
-                                        html!{
-                                            <div class="mx">
-                                                <StrategyInput {option} first_load={props.first_load} is_busy={props.is_busy}/>
-                                            </div>
-                                        }
-                                    }).collect::<Html>()
+            <div class="max-w-[840px] w-11/12 ">
+              <div class="flex">
+                    <div class="min-h-[440px] flex rounded-l-md antialiased bg-gray-200 p-8">
+                        //boutton list
+                        <div class="flex justify-center">
+                            <nav id="nav" class="w-56 relative">
+                                <span
+                                    class="absolute h-10 w-40 bg-white rounded-lg shadow ease-out transition-transform transition-medium"
+                                    style={dynamic_css}/>
+                                <ul class="relative">
+                                    { nav_buttons.into_iter().map(|props| {
+                                        html! {
+                                            <li class="relative h-10 w-50">
+                                                <NavButton name={props.name}
+                                                        svg={props.svg}
+                                                        index={props.index}
+                                                        is_active={props.is_active}
+                                                        onclick={props.onclick}
+                                                            />
+                                            </li>
                                     }
-                                </div>
-                            },
+                                    }).collect::<Html>()}
+                                </ul>
+                            </nav>
+                        </div>
+                        //tab
+                    </div>
+                    <div class="flex rounded-r-md antialiased bg-gray-400 p-8">
+                        {match self.active_tab {
+                            3 => html!{<StrategyOptions onupdate={strategy_config_onupdate} config={self.config.strategy.clone()}/>},
                             _ => html!{}
                         } }
                     </div>
@@ -168,29 +139,9 @@ impl Component for SettingCard {
                 self.active_tab = x;
                 true
             }
-            Msg::OneOptionUpdate(option_inputs) => {
-                match option_inputs {
-                    OneMsg::UpdateVolumeRateValue(v) => {
-                        self.config.s_one.volume_rate_value = v.unwrap_or_default()
-                    }
-                    OneMsg::UpdateVolumeRateDuration(v) => {
-                        self.config.s_one.volume_rate_duration = v.unwrap_or_default()
-                    }
-                    OneMsg::UpdateTxCountValue(v) => {
-                        self.config.s_one.tx_count_value = v.unwrap_or_default()
-                    }
-                    OneMsg::UpdateTxCountDuration(v) => {
-                        self.config.s_one.tx_count_duration = v.unwrap_or_default()
-                    }
-                };
-                true
-            }
-            Msg::TwoOptionUpdate(option_inputs) => {
-                match option_inputs {
-                    TwoMsg::UpdateVolumeTotalValue(v) => {
-                        self.config.s_two.volume_total_value = v.unwrap_or_default()
-                    }
-                }
+            Msg::StrategyConfigUpdate(c) => {
+                self.config.strategy = c;
+                ctx.props().onupdate.emit(self.config.clone());
                 true
             }
         }

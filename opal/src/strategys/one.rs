@@ -2,22 +2,14 @@ use std::default;
 
 use chrono::{DateTime, Duration, Utc};
 
-use crate::{components::setting_card::Msg, SettingDuration};
+use crate::{components::strategy_options::Msg, SettingCallback, SettingDuration};
 
-use super::Strategy;
-
+#[derive(Clone, Debug, PartialEq)]
 pub enum OneMsg {
     UpdateVolumeRateValue(Option<i64>),
     UpdateVolumeRateDuration(Option<SettingDuration>),
     UpdateTxCountValue(Option<i64>),
     UpdateTxCountDuration(Option<SettingDuration>),
-}
-
-impl Strategy for OneMsg {
-    fn msgFn() -> Box<dyn Fn(Self) -> Msg> {
-        let f = |x| -> Msg { Msg::OneOptionUpdate(x) };
-        Box::new(f)
-    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

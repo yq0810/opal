@@ -1,15 +1,20 @@
 use std::cell::RefCell;
+use std::marker::PhantomData;
 use std::rc::Rc;
 
 use chrono::Duration;
 use web_sys::Node;
 use yew::html::ImplicitClone;
-use yew::Callback;
 use yew::{html::Scope, NodeRef};
+use yew::{Callback, Component};
 
 use crate::components::setting_card::SettingCard;
+use crate::components::strategy_options::StrategyOptions;
 use crate::pages::{Index, Msg};
-use crate::strategys::Strategy;
+
+pub trait SettingCallback<M> {
+    fn msgFn() -> Box<dyn Fn(Self) -> M>;
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SettingDuration {
@@ -72,23 +77,32 @@ pub struct SettingDurationToggle {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct SettingOption {
+pub struct SettingOption<M, T, C>
+where
+    C: Component + 'static,
+    M: Into<C::Message>,
+    T: SettingCallback<M> + 'static,
+{
     pub input: SettingValueInput,
     pub duration: Option<SettingDurationToggle>,
+    phantom: PhantomData<M>,
+    phantom2: PhantomData<T>,
+    phantom3: PhantomData<C>,
 }
-impl ImplicitClone for SettingOption {}
 
-impl SettingOption {
-    pub fn new<T>(
+impl<M, T, C> SettingOption<M, T, C>
+where
+    C: Component + 'static,
+    M: Into<C::Message>,
+    T: SettingCallback<M> + 'static,
+{
+    pub fn new(
         call_back_input: fn(String) -> T,
-        link: &Scope<SettingCard>,
+        link: &Scope<C>,
         data_ref: String,
         label_text: String,
         call_back_durationAduraion_ref: Option<(fn(SettingDuration) -> T, SettingDuration)>,
-    ) -> Self
-    where
-        T: Strategy + 'static,
-    {
+    ) -> Self {
         let input = SettingValueInput {
             label_text,
             on_change: Box::new(link.callback(move |x| T::msgFn()(call_back_input(x)))),
@@ -100,11 +114,20 @@ impl SettingOption {
                     on_change: Box::new(link.callback(move |x| T::msgFn()(call_back_duration(x)))),
                     data_ref: data_ref_duration,
                 });
-                SettingOption { input, duration }
+                SettingOption {
+                    input,
+                    duration,
+                    phantom: PhantomData,
+                    phantom2: PhantomData,
+                    phantom3: PhantomData,
+                }
             }
             None => SettingOption {
                 input,
                 duration: None,
+                phantom: PhantomData,
+                phantom2: PhantomData,
+                phantom3: PhantomData,
             },
         }
     }

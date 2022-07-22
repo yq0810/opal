@@ -1,8 +1,8 @@
 pub mod search_bar;
 pub use search_bar::*;
 
-pub mod strategy_input;
-pub use strategy_input::*;
+pub mod setting_input;
+pub use setting_input::*;
 
 pub mod magnifying_glass;
 pub use magnifying_glass::*;

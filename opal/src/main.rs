@@ -1,6 +1,7 @@
 pub mod components;
 mod func_components;
 mod strategys;
+mod triggers;
 // pub mod r#type;
 mod pages;
 pub mod types;
