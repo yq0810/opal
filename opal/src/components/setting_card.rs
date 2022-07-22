@@ -1,7 +1,9 @@
 use crate::components::strategy_options::StrategyOptions;
+use crate::components::trigger_options::TriggerOptions;
 use crate::func_components::{NavButton, NavButtonProps, SvgIcons};
 use crate::pages::Config;
 use crate::strategys::{OneMsg, StrategyConfig, TwoMsg};
+use crate::triggers::TriggerConfig;
 use crate::SettingOption;
 use yew::html::Scope;
 use yew::{html, Callback, Component, Context, Html, Properties};
@@ -9,6 +11,7 @@ use yew::{html, Callback, Component, Context, Html, Properties};
 pub enum Msg {
     ActiveTab(u32),
     StrategyConfigUpdate(StrategyConfig),
+    TriggerConfigUpdate(TriggerConfig),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -93,6 +96,10 @@ impl Component for SettingCard {
             ctx.link()
                 .callback(|config| Msg::StrategyConfigUpdate(config))
         };
+        let trigger_config_onupdate = {
+            ctx.link()
+                .callback(|config| Msg::TriggerConfigUpdate(config))
+        };
         html! {
             // card board
             <div class="max-w-[840px] w-11/12 ">
@@ -125,6 +132,7 @@ impl Component for SettingCard {
                     <div class="flex rounded-r-md antialiased bg-gray-400 p-8">
                         {match self.active_tab {
                             3 => html!{<StrategyOptions onupdate={strategy_config_onupdate} config={self.config.strategy.clone()}/>},
+                            2 => html!{<TriggerOptions onupdate={trigger_config_onupdate} config={self.config.trigger.clone()}/>},
                             _ => html!{}
                         } }
                     </div>
@@ -144,6 +152,7 @@ impl Component for SettingCard {
                 ctx.props().onupdate.emit(self.config.clone());
                 true
             }
+            Msg::TriggerConfigUpdate(_) => todo!(),
         }
     }
 

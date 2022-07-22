@@ -13,6 +13,7 @@ use log::debug;
 
 use crate::func_components::*;
 use crate::strategys::{One, OneMsg, StrategyConfig, Two, TwoMsg};
+use crate::triggers::TriggerConfig;
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
 use crate::{
     find_traget_from_floor_active, find_traget_from_profit, strategy_one, strategy_two,
@@ -61,6 +62,7 @@ pub enum ThemeMode {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Config {
     pub strategy: StrategyConfig,
+    pub trigger: TriggerConfig,
 }
 
 #[derive(Clone, PartialEq, Debug, Default)]
