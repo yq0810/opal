@@ -1,4 +1,6 @@
-use crate::{strategys::slug_active_in_duration, ActivePriceResult, FloorPriceResult, find_first_floor_price};
+use crate::{
+    find_first_floor_price, strategys::slug_active_in_duration, ActivePriceResult, FloorPriceResult,
+};
 use chrono::{DateTime, Duration, Utc};
 use multimap::MultiMap;
 
@@ -39,7 +41,7 @@ pub fn strategy_two(
     slug: &String,
     fp_map: &MultiMap<String, FloorPriceResult>,
 ) -> StrategyTwo {
-    let duration_tx = find_first_floor_price(slug,fp_map,date_time);
+    let duration_tx = find_first_floor_price(slug, fp_map, date_time);
     StrategyTwo {
         total_volume: duration_tx.map(|x| x.total_volume).unwrap_or_default(),
     }

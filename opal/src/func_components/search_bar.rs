@@ -31,7 +31,8 @@ pub fn search_bar(props: &SearchBarProps) -> Html {
         }
     }
 
-    let search_bar_wrap_classes = classes!("md:w-3/4", "w-11/12", "min-w-0", "max-w-[840px]",);
+    let search_bar_wrap_classes =
+        classes!("md:w-3/4", "w-11/12", "min-w-0", "max-w-[840px]", "py-4",);
 
     let search_bar_classes = classes!(
         "dark:bg-slate-700",

@@ -11,6 +11,7 @@ use yew::{Callback, Component};
 use crate::components::setting_card::SettingCard;
 use crate::components::strategy_options::StrategyOptions;
 use crate::pages::{Index, Msg};
+use crate::InputType;
 
 pub trait SettingCallback<M> {
     fn msgFn() -> Box<dyn Fn(Self) -> M>;
@@ -96,19 +97,31 @@ where
     M: Into<C::Message>,
     T: SettingCallback<M> + 'static,
 {
-    pub fn new(
-        call_back_input: fn(String) -> T,
-        link: &Scope<C>,
-        data_ref: String,
-        label_text: String,
-        call_back_durationAduraion_ref: Option<(fn(SettingDuration) -> T, SettingDuration)>,
-    ) -> Self {
+    pub fn new(input: InputType, link: &Scope<C>) -> Self {
+        match input {
+            InputType::SelectValue(s, v) => {
+                let callback = |x| Msgs::One(OneMsg::UpdateVolumeRateValue(x.parse().ok()));
+                let on_change = link.callback(|x| Msg::SettingOptionUpdate(x));
+                SettingOption {
+                    input: SettingValueInput {
+                        label_text: s,
+                        data_ref: v,
+                        on_change,
+                    },
+                    duration: None,
+                    phantom: PhantomData,
+                    phantom2: PhantomData,
+                    phantom3: PhantomData,
+                }
+            }
+            InputType::SelectValueDuration(_, _, _) => todo!(),
+        }
         let input = SettingValueInput {
             label_text,
             on_change: Box::new(link.callback(move |x| T::msgFn()(call_back_input(x)))),
             data_ref,
         };
-        match call_back_durationAduraion_ref {
+        match call_back_duration_aduraion_ref {
             Some((call_back_duration, data_ref_duration)) => {
                 let duration = Some(SettingDurationToggle {
                     on_change: Box::new(link.callback(move |x| T::msgFn()(call_back_duration(x)))),

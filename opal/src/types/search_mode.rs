@@ -17,14 +17,14 @@ pub enum SearchMode {
 impl SearchMode {
     pub fn placeholder_text(&self) -> &'static str {
         match self {
-            SearchMode::T1 => " > FloorPrice _ %",
+            SearchMode::T1 => "slug name",
             SearchMode::T2 => " > Profit _ %",
         }
     }
 
     pub fn button_text(&self) -> &'static str {
         match self {
-            SearchMode::T1 => "T1",
+            SearchMode::T1 => "Collection",
             SearchMode::T2 => "T2",
         }
     }

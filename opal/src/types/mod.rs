@@ -13,8 +13,8 @@ pub use unit::*;
 pub mod find_traget;
 pub use find_traget::*;
 
-pub mod strategys;
-pub use strategys::*;
+pub mod strategys_algo;
+pub use strategys_algo::*;
 
 pub mod sql_query;
 pub use sql_query::*;
@@ -24,3 +24,9 @@ pub use setting_option::*;
 
 pub mod html_display;
 pub use html_display::*;
+
+pub mod inputs_props;
+pub use inputs_props::*;
+
+pub mod input_type;
+pub use input_type::*;

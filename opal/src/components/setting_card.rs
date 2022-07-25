@@ -76,15 +76,9 @@ impl Component for SettingCard {
     type Properties = Props;
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
-        match props.first_load {
-            true => Self {
-                active_tab: 0,
-                config: props.config.clone(),
-            },
-            false => Self {
-                active_tab: 0,
-                config: props.config.clone(),
-            },
+        Self {
+            active_tab: 2,
+            config: props.config.clone(),
         }
     }
 
