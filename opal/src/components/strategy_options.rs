@@ -1,7 +1,6 @@
 use super::setting_card::SettingCard;
 use crate::func_components::SettingInput;
 use crate::strategys::{Msgs, One, StrategyConfig, Two};
-use crate::InputsProps;
 use crate::{
     pages::Config,
     strategys::{OneMsg, TwoMsg},
@@ -38,9 +37,13 @@ impl Component for StrategyOptions {
     }
 
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
-        fn option_list(link: &Scope<StrategyOptions>, config: &StrategyConfig) -> Vec<InputsProps> {
+        fn option_list(
+            link: &Scope<StrategyOptions>,
+            config: &StrategyConfig,
+        ) -> Vec<SettingOption> {
+            let a = |x: String| Msgs::One(OneMsg::UpdateVolumeRateValue(x.parse().ok()));
             let option = SettingOption::new(
-                |x| Msgs::One(OneMsg::UpdateVolumeRateValue(x.parse().ok())),
+                a,
                 link,
                 config.s_one.volume_rate_value.to_string().clone(),
                 "VolumeRate:".to_string(),
@@ -71,9 +74,6 @@ impl Component for StrategyOptions {
 
             let options = vec![option, option2, option3];
             options
-                .iter()
-                .map(|x| InputsProps::Strategy(x.clone()))
-                .collect()
         }
         let strategy_inputs = option_list(ctx.link(), &self.config);
 

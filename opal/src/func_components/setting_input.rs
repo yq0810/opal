@@ -6,7 +6,7 @@ use crate::{
     func_components::*,
     strategys::{self, Msgs, OneMsg},
     triggers::{self, T2Msg},
-    InputsProps, SettingCallback, SettingDuration, SettingDurationToggle, SettingOption,
+    GetValue, SettingCallback, SettingDuration, SettingDurationToggle, SettingOption,
     SettingValueInput,
 };
 use web_sys::{HtmlInputElement, KeyboardEvent, Node};
@@ -21,10 +21,10 @@ pub struct StrategyInputProps {
     // pub label_text:String,
     // pub node_ref: NodeRef,
     // pub on_change: Box<Callback<String>>,
-    pub option: InputsProps,
+    pub option: SettingOption,
 }
 
-impl ImplicitClone for SettingOption<Msg, Msgs, StrategyOptions> {}
+impl ImplicitClone for SettingOption {}
 
 #[function_component(SettingInput)]
 pub fn strategy_input(props: &StrategyInputProps) -> Html {
@@ -74,16 +74,15 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
     let input_ref = input_ref.clone();
     let option = props.option.clone();
     let input_ref_2 = input_ref.clone();
-    let data_ref = option.option_input_data();
-
-    use_effect(move || {
-        if let Some(input) = input_ref_2.cast::<HtmlInputElement>() {
-            // let _ = input.focus();
-            input.set_value(&data_ref);
-        }
-        || ()
-    });
-    let duration_ref_o = option.duration().and_then(|x| Some(x.data_ref.clone()));
+    let init = {
+        let on_search = option.input.on_change.clone();
+        let value = match option.input.msg.clone() {
+            crate::TotalMsg::StrategyMsg(x) => x.get_value(),
+            crate::TotalMsg::TriggerMsg(x) => x.get_value(),
+        };
+        on_search.emit(value);
+    };
+    let duration_ref_o = option.duration.and_then(|x| Some(x.data_ref.clone()));
     match duration_ref_o {
         Some(x) => {
             let input_duration_value_ref = input_duration_value_ref.clone();
@@ -100,7 +99,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
 
     let oninput_duration_value = {
         let input_ref = input_duration_value_ref.clone();
-        let duration_o = option.clone().duration();
+        let duration_o = option.clone().duration;
         let duration = match duration_o {
             Some(duration) => Some(move |_e| {
                 let s = input_ref
@@ -119,7 +118,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
     let oninput = {
         let text_empty = text_empty.clone();
         let input_ref = input_ref.clone();
-        let on_search = option.input().on_change.clone();
+        let on_search = option.input.on_change.clone();
         move |_e| {
             let s = input_ref
                 .cast::<HtmlInputElement>()
@@ -130,7 +129,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         }
     };
     let toggle_onclick = {
-        let duration_o = option.clone().duration();
+        let duration_o = option.clone().duration;
         match duration_o {
             Some(duration) => Some(move |_e| {
                 let back = match duration.data_ref {
@@ -142,16 +141,16 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
             None => None,
         }
     };
-    let (is_d, time_duration) = match option.duration().clone() {
+    let (is_d, time_duration) = match option.duration.clone() {
         Some(d) => (true, d.data_ref.Display()),
         None => (false, "".to_string()),
     };
 
     html! {
-        <div key={option.input().label_text.clone()} class={search_bar_wrap_classes}>
+        <div key={option.input.label_text.clone()} class={search_bar_wrap_classes}>
             <div class={search_bar_classes}>
                   <input type="checkbox" class="px-3" value="second_checkbox" checked={true} />
-                <button class={toggle_classes.clone()} style="" disabled=true >{props.option.input().label_text.clone()}</button>
+                <button class={toggle_classes.clone()} style="" disabled=true >{props.option.input.label_text.clone()}</button>
                 <input class={input_classes} type="text" ref={input_ref} {oninput} />
                 {
                     if is_d {

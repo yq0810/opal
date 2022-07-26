@@ -2,7 +2,6 @@ use super::setting_card::SettingCard;
 use crate::func_components::SettingInput;
 use crate::triggers::t1::{T1Msg, T1};
 use crate::triggers::{Msgs, T2Msg, TriggerConfig, T2};
-use crate::InputsProps;
 use crate::{pages::Config, SettingOption};
 use yew::html::Scope;
 use yew::{html, Callback, Component, Context, Html, Properties};
@@ -19,7 +18,7 @@ pub struct Props {
     pub config: TriggerConfig,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct TriggerOptions {
     pub config: TriggerConfig,
 }
@@ -35,21 +34,21 @@ impl Component for TriggerOptions {
     }
 
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
-        fn option_list(link: &Scope<TriggerOptions>, config: &TriggerConfig) -> Vec<InputsProps> {
-            let option2 = InputsProps::Trigger(SettingOption::new(
+        fn option_list(link: &Scope<TriggerOptions>, config: &TriggerConfig) -> Vec<SettingOption> {
+            let option2 = SettingOption::new(
                 |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
                 link,
                 config.t1.percentage.to_string().clone(),
                 "T1 FloorPrice %:".to_string(),
                 None,
-            ));
-            let option3 = InputsProps::Trigger(SettingOption::new(
+            );
+            let option3 = SettingOption::new(
                 |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
                 link,
                 config.t1.percentage.to_string().clone(),
                 "T2 Profit %:".to_string(),
                 None,
-            ));
+            );
 
             let options = vec![option2, option3];
             options
