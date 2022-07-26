@@ -1,8 +1,9 @@
 use super::setting_card::SettingCard;
 use crate::func_components::SettingInput;
 use crate::triggers::t1::{T1Msg, T1};
-use crate::triggers::{Msgs, T2Msg, TriggerConfig, T2};
+use crate::triggers::{self, Msgs, T2Msg, TriggerConfig, T2};
 use crate::{pages::Config, SettingOption};
+use crate::{AsSettingOption, InputTypeExt, SettingCallback};
 use yew::html::Scope;
 use yew::{html, Callback, Component, Context, Html, Properties};
 
@@ -35,23 +36,24 @@ impl Component for TriggerOptions {
 
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         fn option_list(link: &Scope<TriggerOptions>, config: &TriggerConfig) -> Vec<SettingOption> {
-            let option2 = SettingOption::new(
-                |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
-                link,
-                config.t1.percentage.to_string().clone(),
-                "T1 FloorPrice %:".to_string(),
-                None,
+            let a = <triggers::Msgs as AsSettingOption>::get_options::<Msg, Msgs, TriggerOptions>(
+                config, link,
             );
-            let option3 = SettingOption::new(
-                |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
-                link,
-                config.t1.percentage.to_string().clone(),
-                "T2 Profit %:".to_string(),
-                None,
-            );
-
-            let options = vec![option2, option3];
-            options
+            // let option2 = SettingOption::new(
+            //     |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
+            //     link,
+            //     config.t1.percentage.to_string().clone(),
+            //     "T1 FloorPrice %:".to_string(),
+            //     None,
+            // );
+            // let option3 = SettingOption::new(
+            //     |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
+            //     link,
+            //     config.t1.percentage.to_string().clone(),
+            //     "T2 Profit %:".to_string(),
+            //     None,
+            // );
+            a
         }
         let strategy_inputs = option_list(ctx.link(), &self.config);
         html! {
@@ -73,9 +75,24 @@ impl Component for TriggerOptions {
 
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::T1OptionUpdate(_) => todo!(),
-            Msg::T2OptionUpdate(_) => todo!(),
+            Msg::T1OptionUpdate(msg) => match msg {
+                T1Msg::UpdatePercentage(x) => {
+                    self.config.t1.percentage = x.unwrap_or_default();
+                }
+                T1Msg::UpdateActive(x) => {
+                    self.config.t1.active = x.unwrap_or_default();
+                }
+            },
+            Msg::T2OptionUpdate(msg) => match msg {
+                T2Msg::UpdatePercentage(x) => {
+                    self.config.t2.percentage = x.unwrap_or_default();
+                }
+                T2Msg::UpdateActive(x) => {
+                    self.config.t2.active = x.unwrap_or_default();
+                }
+            },
         }
+        true
     }
 
     fn changed(&mut self, ctx: &yew::Context<Self>) -> bool {

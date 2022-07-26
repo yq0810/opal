@@ -1,6 +1,7 @@
 use super::setting_card::SettingCard;
 use crate::func_components::SettingInput;
-use crate::strategys::{Msgs, One, StrategyConfig, Two};
+use crate::strategys::{self, Msgs, One, StrategyConfig, ThreeMsg, Two};
+use crate::AsSettingOption;
 use crate::{
     pages::Config,
     strategys::{OneMsg, TwoMsg},
@@ -13,6 +14,7 @@ use yew::{html, Callback, Component, Context, Html, Properties};
 pub enum Msg {
     OneOptionUpdate(OneMsg),
     TwoOptionUpdate(TwoMsg),
+    ThreeOptionUpdate(ThreeMsg),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -41,39 +43,43 @@ impl Component for StrategyOptions {
             link: &Scope<StrategyOptions>,
             config: &StrategyConfig,
         ) -> Vec<SettingOption> {
-            let a = |x: String| Msgs::One(OneMsg::UpdateVolumeRateValue(x.parse().ok()));
-            let option = SettingOption::new(
-                a,
-                link,
-                config.s_one.volume_rate_value.to_string().clone(),
-                "VolumeRate:".to_string(),
-                Some((
-                    |x| Msgs::One(OneMsg::UpdateVolumeRateDuration(Some(x))),
-                    config.s_one.volume_rate_duration.clone(),
-                )),
+            let a = <strategys::Msgs as AsSettingOption>::get_options::<Msg, Msgs, StrategyOptions>(
+                config, link,
             );
+            // let a = |Msgs::One(OneMsg::UpdateVolumeRateValue(x.parse().ok()));
+            // let option = SettingOption::new(
+            //     a,
+            //     link,
+            //     config.s_one.volume_rate_value.to_string().clone(),
+            //     "VolumeRate:".to_string(),
+            //     Some((
+            //         |x| Msgs::One(OneMsg::UpdateVolumeRateDuration(Some(x))),
+            //         config.s_one.volume_rate_duration.clone(),
+            //     )),
+            // );
 
-            let option2 = SettingOption::new(
-                |x| Msgs::One(OneMsg::UpdateTxCountValue(x.parse().ok())),
-                link,
-                config.s_one.tx_count_value.to_string().clone(),
-                "TxCount:".to_string(),
-                Some((
-                    |x| Msgs::One(OneMsg::UpdateTxCountDuration(Some(x))),
-                    config.s_one.tx_count_duration.clone(),
-                )),
-            );
+            // let option2 = SettingOption::new(
+            //     |x| Msgs::One(OneMsg::UpdateTxCountValue(x.parse().ok())),
+            //     link,
+            //     config.s_one.tx_count_value.to_string().clone(),
+            //     "TxCount:".to_string(),
+            //     Some((
+            //         |x| Msgs::One(OneMsg::UpdateTxCountDuration(Some(x))),
+            //         config.s_one.tx_count_duration.clone(),
+            //     )),
+            // );
 
-            let option3 = SettingOption::new(
-                |x| Msgs::Two(TwoMsg::UpdateVolumeTotalValue(x.parse().ok())),
-                link,
-                config.s_two.volume_total_value.to_string().clone(),
-                "TotalVolume:".to_string(),
-                None,
-            );
+            // let option3 = SettingOption::new(
+            //     |x| Msgs::Two(TwoMsg::UpdateVolumeTotalValue(x.parse().ok())),
+            //     link,
+            //     config.s_two.volume_total_value.to_string().clone(),
+            //     "TotalVolume:".to_string(),
+            //     None,
+            // );
 
-            let options = vec![option, option2, option3];
-            options
+            // let options = vec![option, option2, option3];
+            // options
+            a
         }
         let strategy_inputs = option_list(ctx.link(), &self.config);
 
@@ -104,11 +110,8 @@ impl Component for StrategyOptions {
                     OneMsg::UpdateVolumeRateDuration(v) => {
                         self.config.s_one.volume_rate_duration = v.unwrap_or_default()
                     }
-                    OneMsg::UpdateTxCountValue(v) => {
-                        self.config.s_one.tx_count_value = v.unwrap_or_default()
-                    }
-                    OneMsg::UpdateTxCountDuration(v) => {
-                        self.config.s_one.tx_count_duration = v.unwrap_or_default()
+                    OneMsg::UpdateVolumeRateSelect(v) => {
+                        self.config.s_one.volume_rate_select = v.unwrap_or_default()
                     }
                 };
                 ctx.props().onupdate.emit(self.config.clone());
@@ -118,6 +121,24 @@ impl Component for StrategyOptions {
                 match option_inputs {
                     TwoMsg::UpdateVolumeTotalValue(v) => {
                         self.config.s_two.volume_total_value = v.unwrap_or_default()
+                    }
+                    TwoMsg::UpdateVolumeTotalSelect(v) => {
+                        self.config.s_two.volume_total_select = v.unwrap_or_default()
+                    }
+                }
+                ctx.props().onupdate.emit(self.config.clone());
+                true
+            }
+            Msg::ThreeOptionUpdate(option_inputs) => {
+                match option_inputs {
+                    ThreeMsg::UpdateTxCountValue(v) => {
+                        self.config.s_three.tx_count_value = v.unwrap_or_default();
+                    }
+                    ThreeMsg::UpdateTxCountDuration(v) => {
+                        self.config.s_three.tx_count_duration = v.unwrap_or_default();
+                    }
+                    ThreeMsg::UpdateTxCountSelect(v) => {
+                        self.config.s_three.tx_count_select = v.unwrap_or_default();
                     }
                 }
                 ctx.props().onupdate.emit(self.config.clone());

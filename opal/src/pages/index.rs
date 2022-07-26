@@ -259,13 +259,13 @@ impl Component for Index {
                                 .s_one
                                 .volume_rate_duration
                                 .to_duration(),
-                            &self.config.strategy.s_one.tx_count_duration.to_duration(),
+                            &self.config.strategy.s_three.tx_count_duration.to_duration(),
                             &self.active_price,
                         );
                         let s_2 = strategy_two(&x.create_time, &&x.slug.slug, &self.floor_price);
                         let is_s_1 = s_1.total_volume as i64
                             > self.config.strategy.s_one.volume_rate_value
-                            && s_1.tx_count > self.config.strategy.s_one.tx_count_value;
+                            && s_1.tx_count > self.config.strategy.s_three.tx_count_value;
                         let is_s_2 =
                             s_2.total_volume as f64 > self.config.strategy.s_two.volume_total_value;
 

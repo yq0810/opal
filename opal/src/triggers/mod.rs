@@ -10,8 +10,8 @@ use crate::{
         strategy_options,
         trigger_options::{self, Msg as TMsg},
     },
-    AsSettingOption, CallbackMsg, GetValue, InputType, SettingCallback, SettingOption,
-    SettingValueInput, TotalMsg,
+    AsSettingOption, CallbackMsg, GetValue, InputType, InputTypeExt, SettingCallback,
+    SettingOption, SettingValueInput, TotalMsg,
 };
 
 use self::t1::{T1Msg, T1};
@@ -35,12 +35,20 @@ impl GetValue for Msgs {
             Msgs::T2(x) => x.get_value(),
         }
     }
+
+    fn to_total_msg(&self) -> TotalMsg {
+        match self {
+            Msgs::T1(x) => x.to_total_msg(),
+            Msgs::T2(x) => x.to_total_msg(),
+        }
+    }
 }
 
 impl AsSettingOption for Msgs {
     type O = trigger_options::Msg;
+    type Config = TriggerConfig;
 
-    fn option_input_data<M, T, C>(&self, from: InputType, link: &Scope<C>) -> SettingOption
+    fn option_input_data<M, T, C>(from: &InputType, link: &Scope<C>) -> SettingOption
     where
         C: Component + 'static,
         M: Into<C::Message>,
@@ -49,11 +57,11 @@ impl AsSettingOption for Msgs {
     {
         let (label_text, msg, on_change) = match from {
             InputType::SelectValue((label_text, msg), x) => {
-                let on_change = match msg {
+                let on_change = match msg.clone() {
                     TotalMsg::TriggerMsg(x) => x.as_callback::<M, T, C>(link),
                     _ => panic!("unexpected msg"),
                 };
-                (label_text.to_string(), msg, on_change)
+                (label_text.to_string(), msg.clone(), on_change)
             }
             InputType::SelectValueDuration(_, _, _) => todo!(),
         };
@@ -65,6 +73,26 @@ impl AsSettingOption for Msgs {
             },
             duration: None,
         }
+    }
+
+    fn get_options<M, T, C>(config: &Self::Config, link: &Scope<C>) -> Vec<SettingOption>
+    where
+        C: Component + 'static,
+        M: Into<C::Message>,
+        T: SettingCallback<M> + 'static,
+        <C as yew::Component>::Message: From<Self::O>,
+    {
+        let a = config.t1.input_type();
+        let b = config.t2.input_type();
+        let l = vec![a, b];
+        l.iter()
+            .map(|input_type| match input_type {
+                InputType::SelectValue((_, x), _) => {
+                    Self::option_input_data::<M, T, C>(input_type.clone(), link)
+                }
+                InputType::SelectValueDuration(_, _, _) => todo!(),
+            })
+            .collect()
     }
 }
 
@@ -78,16 +106,24 @@ impl CallbackMsg for Msgs {
         <C as yew::Component>::Message: From<Self::O>,
     {
         match self {
-            Msgs::T1(m) => {
-                match m {
-                    T1Msg::UpdatePercentage(_) => Self::to_callback_fn(
-                        |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
-                        link,
-                    ),
-                    T1Msg::UpdateActive(_) => todo!(), // T1Msg::UpdateActive(_) => |x| T1Msg::UpdateActive(x.parse().ok()),
+            Msgs::T1(m) => match m {
+                T1Msg::UpdatePercentage(_) => Self::to_callback_fn(
+                    |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
+                    link,
+                ),
+                T1Msg::UpdateActive(_) => {
+                    Self::to_callback_fn(|x| Msgs::T1(T1Msg::UpdateActive(x.parse().ok())), link)
                 }
-            }
-            Msgs::T2(m) => todo!(),
+            },
+            Msgs::T2(m) => match m {
+                T2Msg::UpdatePercentage(_) => Self::to_callback_fn(
+                    |x| Msgs::T2(T2Msg::UpdatePercentage(x.parse().ok())),
+                    link,
+                ),
+                T2Msg::UpdateActive(_) => {
+                    Self::to_callback_fn(|x| Msgs::T2(T2Msg::UpdateActive(x.parse().ok())), link)
+                }
+            },
         }
     }
 }

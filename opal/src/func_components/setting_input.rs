@@ -80,9 +80,19 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
             crate::TotalMsg::StrategyMsg(x) => x.get_value(),
             crate::TotalMsg::TriggerMsg(x) => x.get_value(),
         };
-        on_search.emit(value);
+        use_effect(move || {
+            if let Some(input) = input_ref_2.cast::<HtmlInputElement>() {
+                // let _ = input.focus();
+                input.set_value(&value);
+            }
+            || ()
+        });
+        // on_search.emit(value);
     };
-    let duration_ref_o = option.duration.and_then(|x| Some(x.data_ref.clone()));
+    let duration_ref_o = option
+        .duration
+        .clone()
+        .and_then(|x| Some(x.data_ref.clone()));
     match duration_ref_o {
         Some(x) => {
             let input_duration_value_ref = input_duration_value_ref.clone();

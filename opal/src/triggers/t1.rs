@@ -27,6 +27,10 @@ impl GetValue for T1Msg {
             T1Msg::UpdateActive(x) => x.map(|x| x.to_string()).unwrap_or_default(),
         }
     }
+
+    fn to_total_msg(&self) -> TotalMsg {
+        TotalMsg::TriggerMsg(Msgs::T1(self.clone()))
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

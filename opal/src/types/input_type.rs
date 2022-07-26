@@ -1,6 +1,8 @@
-use yew::Component;
+use yew::{html::Scope, Component};
 
-use crate::{strategys, triggers, SettingCallback, SettingDuration, TotalMsg};
+use crate::{
+    strategys, triggers, AsSettingOption, SettingCallback, SettingDuration, SettingOption, TotalMsg,
+};
 
 use super::strategys_algo;
 
@@ -16,6 +18,8 @@ pub enum InputType {
     SelectValue(InputValue, InputSelect),
     SelectValueDuration(InputValue, InputSelect, InputDuration),
 }
+
+impl InputType {}
 
 pub trait InputTypeExt {
     fn input_type(&self) -> InputType;
