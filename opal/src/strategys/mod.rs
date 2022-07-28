@@ -15,8 +15,9 @@ use yew::{html::Scope, Callback, Component};
 
 use crate::{
     components::strategy_options::{self, Msg as SMsg},
-    AsSettingOption, CallbackMsg, GetValue, InputType, InputTypeExt, SettingCallback,
-    SettingDuration, SettingOption, SettingValueInput, TotalMsg,
+    AsInputType, AsSettingOption, CallbackMsg, InputType, SettingActiveToggle, SettingCallbackFn,
+    SettingDuration, SettingDurationToggle, SettingOption, SettingValueInput, TotalMsg,
+    TotalMsgScope, ValueOP,
 };
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -32,7 +33,8 @@ pub enum Msgs {
     Two(TwoMsg),
     Three(ThreeMsg),
 }
-impl GetValue for Msgs {
+
+impl ValueOP for Msgs {
     fn get_value(&self) -> String {
         match self {
             Msgs::One(x) => x.get_value(),
@@ -41,20 +43,12 @@ impl GetValue for Msgs {
         }
     }
 
-    fn to_total_msg(&self) -> TotalMsg {
+    fn set_value(&self, new_value: String) -> Self {
         match self {
-            Msgs::One(x) => x.to_total_msg(),
-            Msgs::Two(x) => x.to_total_msg(),
-            Msgs::Three(x) => x.to_total_msg(),
+            Msgs::One(x) => Msgs::One(x.set_value(new_value)),
+            Msgs::Two(x) => Msgs::Two(x.set_value(new_value)),
+            Msgs::Three(x) => Msgs::Three(x.set_value(new_value)),
         }
-    }
-}
-
-impl FromStr for SettingDuration {
-    type Err = ParseIntError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(SettingDuration::Days(55))
     }
 }
 
@@ -65,7 +59,7 @@ impl CallbackMsg for Msgs {
     where
         C: Component + 'static,
         M: Into<C::Message>,
-        T: SettingCallback<M> + 'static,
+        T: SettingCallbackFn<M> + 'static,
         <C as yew::Component>::Message: From<Self::O>,
     {
         match self {
@@ -114,38 +108,12 @@ impl CallbackMsg for Msgs {
 impl AsSettingOption for Msgs {
     type O = strategy_options::Msg;
     type Config = StrategyConfig;
-    fn option_input_data<M, T, C>(from: &InputType, link: &Scope<C>) -> SettingOption
-    where
-        C: Component + 'static,
-        M: Into<C::Message>,
-        T: SettingCallback<M> + 'static,
-        <C as yew::Component>::Message: From<Self::O>,
-    {
-        let (label_text, msg, on_change) = match from {
-            InputType::SelectValue((label_text, msg), x) => {
-                let on_change = match msg.clone() {
-                    TotalMsg::StrategyMsg(x) => x.as_callback::<M, T, C>(link),
-                    _ => panic!("unexpected msg"),
-                };
-                (label_text.to_string(), msg.clone(), on_change)
-            }
-            InputType::SelectValueDuration(_, _, _) => todo!(),
-        };
-        SettingOption {
-            input: SettingValueInput {
-                label_text,
-                msg,
-                on_change,
-            },
-            duration: None,
-        }
-    }
 
-    fn get_options<M, T, C>(config: &Self::Config, link: &Scope<C>) -> Vec<SettingOption>
+    fn get_options<M, T, C>(config: &Self::Config, link: TotalMsgScope) -> Vec<SettingOption>
     where
         C: Component + 'static,
         M: Into<C::Message>,
-        T: SettingCallback<M> + 'static,
+        T: SettingCallbackFn<M> + 'static,
         <C as yew::Component>::Message: From<Self::O>,
     {
         let a = config.s_one.input_type();
@@ -153,17 +121,14 @@ impl AsSettingOption for Msgs {
         let c = config.s_three.input_type();
         let l = vec![a, b, c];
         l.iter()
-            .map(|input_type| match input_type {
-                InputType::SelectValue((_, x), _) => {
-                    Self::option_input_data::<M, T, C>(input_type.clone(), link)
-                }
-                InputType::SelectValueDuration(_, _, _) => //todo ,
+            .map(|input_type| -> SettingOption {
+                Self::option_input_data::<M, T, C>(input_type, &link)
             })
             .collect()
     }
 }
 
-impl SettingCallback<SMsg> for Msgs {
+impl SettingCallbackFn<SMsg> for Msgs {
     fn msgFn() -> Box<dyn Fn(Self) -> SMsg> {
         let f = |x| -> SMsg {
             match x {

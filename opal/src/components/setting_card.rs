@@ -77,7 +77,7 @@ impl Component for SettingCard {
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
         Self {
-            active_tab: 2,
+            active_tab: 3,
             config: props.config.clone(),
         }
     }
@@ -123,7 +123,7 @@ impl Component for SettingCard {
                         </div>
                         //tab
                     </div>
-                    <div class="flex rounded-r-md antialiased bg-gray-400 p-8">
+                    <div class="flex rounded-r-md antialiased bg-gray-400 p-8 w-full">
                         {match self.active_tab {
                             3 => html!{<StrategyOptions onupdate={strategy_config_onupdate} config={self.config.strategy.clone()}/>},
                             2 => html!{<TriggerOptions onupdate={trigger_config_onupdate} config={self.config.trigger.clone()}/>},
@@ -146,7 +146,11 @@ impl Component for SettingCard {
                 ctx.props().onupdate.emit(self.config.clone());
                 true
             }
-            Msg::TriggerConfigUpdate(_) => todo!(),
+            Msg::TriggerConfigUpdate(c) => {
+                self.config.trigger = c;
+                ctx.props().onupdate.emit(self.config.clone());
+                true
+            }
         }
     }
 

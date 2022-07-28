@@ -6,9 +6,10 @@ use crate::{
     func_components::*,
     strategys::{self, Msgs, OneMsg},
     triggers::{self, T2Msg},
-    GetValue, SettingCallback, SettingDuration, SettingDurationToggle, SettingOption,
-    SettingValueInput,
+    SettingCallbackFn, SettingDuration, SettingDurationToggle, SettingOption, SettingValueInput,
+    ValueOP,
 };
+use log::debug;
 use web_sys::{HtmlInputElement, KeyboardEvent, Node};
 use yew::html::IntoPropValue;
 use yew::{
@@ -28,8 +29,6 @@ impl ImplicitClone for SettingOption {}
 
 #[function_component(SettingInput)]
 pub fn strategy_input(props: &StrategyInputProps) -> Html {
-    let search_bar_wrap_classes = classes!("md:w-3/4", "w-11/12", "min-w-0", "max-w-[840px]",);
-
     let search_bar_classes = classes!(
         "dark:bg-slate-900",
         "bg-white",
@@ -42,10 +41,11 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         "drop-shadow-light",
     );
     let input_classes = "focus:outline-none rounded-none rounded bg-gray-50 border border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500 block flex-1 w-12 text-sm border-gray-300 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
-    let input_classes_duration = "focus:outline-none rounded-none rounded-r-lg bg-gray-50 border border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500 block flex-1 min-w-0 w-full text-sm border-gray-300 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+    let input_classes_duration = "w-20 focus:outline-none rounded-none rounded-r-lg bg-gray-50 border border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500 block flex-1 min-w-0 w-full text-sm border-gray-300 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
     let toggle_classes = classes!(
         "h-10",
-        "w-30",
+        "w-35",
+        "p-2",
         "rounded-md",
         "dark:text-slate-50",
         "self-center",
@@ -65,8 +65,6 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         "text-sm",
         "text-center",
     );
-    let x_mark_classes = classes!("w-4", "h-4", "text-slate-400", "hover:text-slate-500");
-    let icon_classes = classes!("w-5", "h-5");
 
     let text_empty = use_state_eq(|| true);
     let input_ref = NodeRef::default();
@@ -74,6 +72,8 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
     let input_ref = input_ref.clone();
     let option = props.option.clone();
     let input_ref_2 = input_ref.clone();
+    let select_input_ref = NodeRef::default();
+    let select_input_ref_2 = select_input_ref.clone();
     let init = {
         let on_search = option.input.on_change.clone();
         let value = match option.input.msg.clone() {
@@ -82,8 +82,17 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         };
         use_effect(move || {
             if let Some(input) = input_ref_2.cast::<HtmlInputElement>() {
-                // let _ = input.focus();
                 input.set_value(&value);
+            }
+            || ()
+        });
+        let value = match option.select.msg.clone() {
+            crate::TotalMsg::StrategyMsg(x) => x.get_value().parse().unwrap(),
+            crate::TotalMsg::TriggerMsg(x) => x.get_value().parse().unwrap(),
+        };
+        use_effect(move || {
+            if let Some(input) = select_input_ref_2.cast::<HtmlInputElement>() {
+                input.set_checked(value);
             }
             || ()
         });
@@ -118,7 +127,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
                     .unwrap_or_default();
                 let nx = s.parse::<i32>().unwrap_or_default();
                 let back = duration.data_ref.set_value(nx);
-                duration.on_change.emit(back)
+                duration.on_change.emit(back.to_string())
             }),
             None => None,
         };
@@ -146,7 +155,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
                     crate::SettingDuration::Days(x) => SettingDuration::Hours(x),
                     crate::SettingDuration::Hours(x) => SettingDuration::Days(x),
                 };
-                duration.on_change.emit(back)
+                duration.on_change.emit(back.to_string())
             }),
             None => None,
         }
@@ -156,10 +165,26 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         None => (false, "".to_string()),
     };
 
+    let select_onchange = {
+        let option = option.clone();
+        let on_search = option.select.on_change.clone();
+        let select_input_ref = select_input_ref.clone();
+        move |_e| {
+            let s = select_input_ref
+                .cast::<HtmlInputElement>()
+                .map(|select| select.checked())
+                .unwrap_or_default();
+            on_search.emit(s.to_string())
+        }
+    };
+
     html! {
-        <div key={option.input.label_text.clone()} class={search_bar_wrap_classes}>
+        <div key={option.input.label_text.clone()}>
             <div class={search_bar_classes}>
-                  <input type="checkbox" class="px-3" value="second_checkbox" checked={true} />
+                <input type="checkbox" class="px-3"
+                    ref={select_input_ref}
+                    onclick={select_onchange}
+                  />
                 <button class={toggle_classes.clone()} style="" disabled=true >{props.option.input.label_text.clone()}</button>
                 <input class={input_classes} type="text" ref={input_ref} {oninput} />
                 {

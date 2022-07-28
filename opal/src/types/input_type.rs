@@ -1,10 +1,8 @@
 use yew::{html::Scope, Component};
 
-use crate::{
-    strategys, triggers, AsSettingOption, SettingCallback, SettingDuration, SettingOption, TotalMsg,
-};
+use crate::{strategys, triggers, AsSettingOption, TotalMsg};
 
-use super::strategys_algo;
+use super::{setting_option::SettingDuration, strategys_algo};
 
 type LabelText = &'static str;
 type LabelValue = String;
@@ -19,8 +17,19 @@ pub enum InputType {
     SelectValueDuration(InputValue, InputSelect, InputDuration),
 }
 
-impl InputType {}
-
-pub trait InputTypeExt {
-    fn input_type(&self) -> InputType;
+impl InputType {
+    pub fn warp(
+        &self,
+    ) -> (
+        Option<InputValue>,
+        Option<InputSelect>,
+        Option<InputDuration>,
+    ) {
+        match self {
+            InputType::SelectValue(a, b) => (Some(a.clone()), Some(b.clone()), None),
+            InputType::SelectValueDuration(a, b, c) => {
+                (Some(a.clone()), Some(b.clone()), Some(c.clone()))
+            }
+        }
+    }
 }

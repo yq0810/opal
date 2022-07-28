@@ -10,8 +10,8 @@ use crate::{
         strategy_options,
         trigger_options::{self, Msg as TMsg},
     },
-    AsSettingOption, CallbackMsg, GetValue, InputType, InputTypeExt, SettingCallback,
-    SettingOption, SettingValueInput, TotalMsg,
+    AsInputType, AsSettingOption, CallbackMsg, InputType, SettingActiveToggle, SettingCallbackFn,
+    SettingOption, SettingValueInput, TotalMsg, TotalMsgScope, ValueOP,
 };
 
 use self::t1::{T1Msg, T1};
@@ -27,8 +27,7 @@ pub enum Msgs {
     T1(T1Msg),
     T2(T2Msg),
 }
-
-impl GetValue for Msgs {
+impl ValueOP for Msgs {
     fn get_value(&self) -> String {
         match self {
             Msgs::T1(x) => x.get_value(),
@@ -36,10 +35,10 @@ impl GetValue for Msgs {
         }
     }
 
-    fn to_total_msg(&self) -> TotalMsg {
+    fn set_value(&self, new_value: String) -> Self {
         match self {
-            Msgs::T1(x) => x.to_total_msg(),
-            Msgs::T2(x) => x.to_total_msg(),
+            Msgs::T1(x) => Msgs::T1(x.set_value(new_value)),
+            Msgs::T2(x) => Msgs::T2(x.set_value(new_value)),
         }
     }
 }
@@ -47,50 +46,19 @@ impl GetValue for Msgs {
 impl AsSettingOption for Msgs {
     type O = trigger_options::Msg;
     type Config = TriggerConfig;
-
-    fn option_input_data<M, T, C>(from: &InputType, link: &Scope<C>) -> SettingOption
+    fn get_options<M, T, C>(config: &Self::Config, link: TotalMsgScope) -> Vec<SettingOption>
     where
         C: Component + 'static,
         M: Into<C::Message>,
-        T: SettingCallback<M> + 'static,
-        <C as yew::Component>::Message: From<Self::O>,
-    {
-        let (label_text, msg, on_change) = match from {
-            InputType::SelectValue((label_text, msg), x) => {
-                let on_change = match msg.clone() {
-                    TotalMsg::TriggerMsg(x) => x.as_callback::<M, T, C>(link),
-                    _ => panic!("unexpected msg"),
-                };
-                (label_text.to_string(), msg.clone(), on_change)
-            }
-            InputType::SelectValueDuration(_, _, _) => todo!(),
-        };
-        SettingOption {
-            input: SettingValueInput {
-                label_text,
-                msg,
-                on_change,
-            },
-            duration: None,
-        }
-    }
-
-    fn get_options<M, T, C>(config: &Self::Config, link: &Scope<C>) -> Vec<SettingOption>
-    where
-        C: Component + 'static,
-        M: Into<C::Message>,
-        T: SettingCallback<M> + 'static,
+        T: SettingCallbackFn<M> + 'static,
         <C as yew::Component>::Message: From<Self::O>,
     {
         let a = config.t1.input_type();
         let b = config.t2.input_type();
         let l = vec![a, b];
         l.iter()
-            .map(|input_type| match input_type {
-                InputType::SelectValue((_, x), _) => {
-                    Self::option_input_data::<M, T, C>(input_type.clone(), link)
-                }
-                InputType::SelectValueDuration(_, _, _) => todo!(),
+            .map(|input_type| -> SettingOption {
+                Self::option_input_data::<M, T, C>(input_type.clone(), &link)
             })
             .collect()
     }
@@ -98,11 +66,12 @@ impl AsSettingOption for Msgs {
 
 impl CallbackMsg for Msgs {
     type O = trigger_options::Msg;
+
     fn as_callback<M, T, C>(&self, link: &Scope<C>) -> Box<Callback<String>>
     where
         C: Component + 'static,
         M: Into<C::Message>,
-        T: SettingCallback<M> + 'static,
+        T: SettingCallbackFn<M> + 'static,
         <C as yew::Component>::Message: From<Self::O>,
     {
         match self {
@@ -128,7 +97,7 @@ impl CallbackMsg for Msgs {
     }
 }
 
-impl SettingCallback<TMsg> for Msgs {
+impl SettingCallbackFn<TMsg> for Msgs {
     fn msgFn() -> Box<dyn Fn(Self) -> TMsg> {
         let f = |x| -> TMsg {
             match x {

@@ -1,3 +1,4 @@
+use crate::components::coll_card::CollCard;
 use concat_string::concat_string;
 use gloo::timers::callback::Timeout;
 use multimap::MultiMap;
@@ -11,7 +12,6 @@ use yew::prelude::*;
 #[allow(unused_imports)]
 use log::debug;
 
-use crate::func_components::*;
 use crate::strategys::{One, OneMsg, StrategyConfig, Two, TwoMsg};
 use crate::triggers::TriggerConfig;
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
@@ -19,6 +19,7 @@ use crate::{
     find_traget_from_floor_active, find_traget_from_profit, strategy_one, strategy_two,
     ActivePriceResult, CollResult, HTMLDisplay, SQLResult, TargetResult,
 };
+use crate::{func_components::*, CollInfo};
 
 use crate::components::setting_card::SettingCard;
 const DB_CONFIG: &str = r#"
@@ -38,6 +39,8 @@ const LIGHT_THEME: &str = "light";
 
 pub enum Msg {
     SearchStart(Option<i32>),
+    SearchSlug(Option<String>),
+    ShowCollRefresh(Option<CollInfo>),
     TargetResults(Result<Vec<TargetResult>, QueryError>),
     UpdateFloor(Result<Vec<FloorPriceResult>, QueryError>),
     UpdateActive(Result<Vec<ActivePriceResult>, QueryError>),
@@ -86,6 +89,7 @@ pub struct Index {
     timeout: Timeout,
     success_count: i32,
     earn: f64,
+    pub show_coll: Option<CollInfo>,
 }
 
 // From https://github.com/yewstack/yew/issues/364#issuecomment-737138847
@@ -113,7 +117,9 @@ fn timeout_handle(_: html::Scope<App>) -> Timeout {
 
 #[cfg(debug_assertions)]
 fn timeout_handle(link: html::Scope<Index>) -> Timeout {
-    Timeout::new(2000, move || link.send_message(Msg::SearchStart(Some(5))))
+    Timeout::new(2000, move || {
+        link.send_message(Msg::SearchSlug(Some("azuki".to_string())))
+    })
 }
 
 impl Component for Index {
@@ -133,7 +139,7 @@ impl Component for Index {
         config.strategy.s_one.volume_rate_value = 30;
         config.strategy.s_two.volume_total_value = 12500.0;
         Self {
-            mode: SearchMode::T1,
+            mode: SearchMode::default(),
             first_load: true,
             is_busy: false,
             displayed_results: SearchResults::default(),
@@ -147,6 +153,7 @@ impl Component for Index {
             coll: MultiMap::new(),
             config,
             one_result: Default::default(),
+            show_coll: None,
         }
     }
 
@@ -160,6 +167,17 @@ impl Component for Index {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         self.first_load = false;
         match msg {
+            Msg::SearchSlug(slug) => match slug {
+                Some(slug) => {
+                    ctx.link().send_future(SearchMode::start_slug(slug));
+                    true
+                }
+                None => true,
+            },
+            Msg::ShowCollRefresh(a) => {
+                self.show_coll = a;
+                true
+            }
             Msg::TargetResults(results) => match results {
                 Ok(results) => {
                     self.targets = results.clone();
@@ -219,21 +237,20 @@ impl Component for Index {
                 let stage_one =
                     find_traget_from_floor_active(&&self.floor_price, &self.coll, &a, p);
                 match self.mode {
-                    SearchMode::T1 => {
+                    SearchMode::Slug => {
                         self.targets = stage_one;
-                    }
-                    SearchMode::T2 => {
-                        let stage_actives = stage_one
-                            .iter()
-                            .map(|x| x.compare_ap.clone())
-                            .collect::<Vec<_>>();
-                        self.targets = find_traget_from_profit(
-                            &stage_actives,
-                            &&self.active_price,
-                            &self.coll,
-                            p,
-                        );
-                    }
+                    } // SearchMode::T2 => {
+                      //     let stage_actives = stage_one
+                      //         .iter()
+                      //         .map(|x| x.compare_ap.clone())
+                      //         .collect::<Vec<_>>();
+                      //     self.targets = find_traget_from_profit(
+                      //         &stage_actives,
+                      //         &&self.active_price,
+                      //         &self.coll,
+                      //         p,
+                      //     );
+                      // }
                 }
                 // 2
 
@@ -294,8 +311,7 @@ impl Component for Index {
             }
             Msg::ToggleSearchType => {
                 self.mode = match &self.mode {
-                    SearchMode::T1 => SearchMode::T2,
-                    SearchMode::T2 => SearchMode::T1,
+                    SearchMode::Slug => SearchMode::Slug,
                 };
                 true
             }
@@ -389,6 +405,10 @@ impl Component for Index {
                     toggle_text={self.mode.button_text()}
                     first_load={self.first_load} is_busy={self.is_busy}
                 />
+                {match self.show_coll.clone() {
+                    Some(coll) => html!{<CollCard {coll}/>},
+                    None => html!{},
+                }}
                 <SettingCard onupdate={setting_card_callback} first_load={self.first_load.clone()} config={self.config.clone()} is_busy={self.is_busy} />
                 // <SearchCollResult
                 //     text_ref={text_ref.clone()}

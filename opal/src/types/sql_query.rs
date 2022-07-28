@@ -1,20 +1,13 @@
 pub type SearchResults = Vec<Html>;
-use std::future::Future;
-use std::pin::Pin;
-use crate::{SearchQuery, QueryError, Entrys};
+use crate::{Entrys, Query, QueryError, SearchQuery};
 use concat_string::concat_string;
 use serde::Deserialize;
 use sql_js_httpvfs_rs::*;
+use std::future::Future;
+use std::pin::Pin;
 use yew::Html;
 
 pub type QueryOutput<T> = Pin<Box<dyn Future<Output = Result<Vec<T>, QueryError>>>>;
-pub trait Query {
-    fn sql_query_raw(&self) -> String;
-    fn exec_query<T>(r: Self) -> QueryOutput<T>
-    where
-        Self: Sized,
-        for<'a> T: Deserialize<'a>;
-}
 
 impl Query for SearchQuery {
     fn sql_query_raw(&self) -> String {

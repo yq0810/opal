@@ -1,6 +1,9 @@
-use crate::{pages::Msg, types::unit::my_date_format, Query};
+use std::default;
+
+use crate::{find_first_floor_price, pages::Msg, types::unit::my_date_format, CollInfo, Query};
 use chrono::{DateTime, Utc};
 use futures::Future;
+use multimap::MultiMap;
 use opal_derive::Sqlgogo;
 use serde::Deserialize;
 use wasm_bindgen::JsValue;
@@ -11,21 +14,62 @@ use log::debug;
 
 #[derive(Clone, Copy)]
 pub enum SearchMode {
-    T1,
-    T2,
+    Slug,
 }
+
+impl Default for SearchMode {
+    fn default() -> Self {
+        SearchMode::Slug
+    }
+}
+
 impl SearchMode {
     pub fn placeholder_text(&self) -> &'static str {
         match self {
-            SearchMode::T1 => "slug name",
-            SearchMode::T2 => " > Profit _ %",
+            SearchMode::Slug => "slug name",
         }
     }
 
     pub fn button_text(&self) -> &'static str {
         match self {
-            SearchMode::T1 => "Collection",
-            SearchMode::T2 => "T2",
+            SearchMode::Slug => "Collection",
+        }
+    }
+
+    pub fn start_slug(slug: String) -> impl Future<Output = Msg> {
+        async move {
+            let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
+            let result = match msgs3 {
+                Ok(x) => x.iter().find_map(|x| {
+                    if x.slug == slug {
+                        Some(x.clone())
+                    } else {
+                        None
+                    }
+                }),
+                Err(_) => None,
+            };
+
+            let msg = SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
+            let result = match (msg, result) {
+                (Ok(fps), Some(slug_result)) => {
+                    let last_fps = fps.last().cloned();
+                    // let mut new_map: MultiMap<String, FloorPriceResult> = MultiMap::new();
+                    // fps.iter().for_each(|x| {
+                    //     new_map.insert(x.slug.clone(), x.clone());
+                    // });
+                    // let fp = find_first_floor_price(&slug, &new_map, &);
+                    let result = CollInfo {
+                        slug,
+                        slug_result,
+                        floor_price_result: last_fps,
+                    };
+                    Some(result)
+                }
+                _ => None,
+            };
+
+            Msg::ShowCollRefresh(result)
         }
     }
 

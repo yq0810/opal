@@ -1,6 +1,9 @@
 use std::cell::RefCell;
+use std::fmt::Display;
 use std::marker::PhantomData;
+use std::num::ParseIntError;
 use std::rc::Rc;
+use std::str::FromStr;
 
 use chrono::Duration;
 use web_sys::Node;
@@ -11,16 +14,38 @@ use yew::{Callback, Component};
 use crate::components::setting_card::SettingCard;
 use crate::components::strategy_options::StrategyOptions;
 use crate::pages::{Index, Msg};
-use crate::{CallbackMsg, InputType, TotalMsg};
-
-pub trait SettingCallback<M> {
-    fn msgFn() -> Box<dyn Fn(Self) -> M>;
-}
+use crate::{CallbackMsg, InputType, ParserError, TotalMsg};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SettingDuration {
     Days(i32),
     Hours(i32),
+}
+
+impl Display for SettingDuration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SettingDuration::Days(x) => write!(f, "{},days", x),
+            SettingDuration::Hours(x) => write!(f, "{},hours", x),
+        }
+    }
+}
+
+impl FromStr for SettingDuration {
+    type Err = ParserError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let str_s = s.split(",").collect::<Vec<&str>>();
+        match str_s.get(1).unwrap() {
+            &"days" => Ok(SettingDuration::Days(
+                str_s.get(0).unwrap().parse::<i32>().unwrap(),
+            )),
+            &"hours" => Ok(SettingDuration::Hours(
+                str_s.get(0).unwrap().parse::<i32>().unwrap(),
+            )),
+            _ => Err(ParserError::DurationError),
+        }
+    }
 }
 
 impl SettingDuration {
@@ -74,11 +99,18 @@ pub struct SettingValueInput {
 #[derive(Clone, PartialEq, Debug)]
 pub struct SettingDurationToggle {
     pub data_ref: SettingDuration,
-    pub on_change: Box<Callback<SettingDuration>>,
+    pub on_change: Box<Callback<String>>,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct SettingActiveToggle {
+    pub msg: TotalMsg,
+    pub on_change: Box<Callback<String>>,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SettingOption {
+    pub select: SettingActiveToggle,
     pub input: SettingValueInput,
     pub duration: Option<SettingDurationToggle>,
 }

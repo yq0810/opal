@@ -1,9 +1,13 @@
 use yew::{html::Scope, Callback, Component};
 
 use crate::{
-    components::{strategy_options, trigger_options::TriggerOptions},
+    components::{
+        strategy_options::{self, StrategyOptions},
+        trigger_options::{self, TriggerOptions},
+    },
     strategys::{self, StrategyConfig},
-    triggers, AsSettingOption, CallbackMsg, InputType, SettingCallback, SettingDuration,
+    triggers::{self, TriggerConfig},
+    AsSettingOption, CallbackMsg, InputType, SettingActiveToggle, SettingDurationToggle,
     SettingOption, SettingValueInput,
 };
 
@@ -13,4 +17,39 @@ use super::strategys_algo;
 pub enum TotalMsg {
     StrategyMsg(strategys::Msgs),
     TriggerMsg(triggers::Msgs),
+}
+impl TotalMsg {
+    pub fn get_pair_link(&self, total_link: &TotalMsgScope) -> Box<Callback<String>> {
+        match (self, total_link) {
+            (TotalMsg::StrategyMsg(x), TotalMsgScope::StrategyMsgScope(link)) => {
+                x.as_callback::<strategy_options::Msg, strategys::Msgs, StrategyOptions>(&link)
+            }
+            (TotalMsg::TriggerMsg(x), TotalMsgScope::TriggerMsgScope(link)) => {
+                x.as_callback::<trigger_options::Msg, triggers::Msgs, TriggerOptions>(&link)
+            }
+            _ => panic!("TotalMsg::get_pair_link error"),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum TotalMsgPage {
+    StrategyMsgPage(strategy_options::Msg),
+    TriggerMsgPage(trigger_options::Msg),
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum TotalMsgConfig {
+    StrategyMsgConfig(StrategyConfig),
+    TriggerMsgConfig(TriggerConfig),
+}
+
+pub enum TotalMsgOptions {
+    StrategyMsgOptions(StrategyOptions),
+    TriggerMsgOptions(TriggerOptions),
+}
+
+pub enum TotalMsgScope {
+    StrategyMsgScope(Scope<StrategyOptions>),
+    TriggerMsgScope(Scope<TriggerOptions>),
 }

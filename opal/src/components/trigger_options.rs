@@ -3,7 +3,7 @@ use crate::func_components::SettingInput;
 use crate::triggers::t1::{T1Msg, T1};
 use crate::triggers::{self, Msgs, T2Msg, TriggerConfig, T2};
 use crate::{pages::Config, SettingOption};
-use crate::{AsSettingOption, InputTypeExt, SettingCallback};
+use crate::{AsInputType, AsSettingOption, SettingCallbackFn, TotalMsgScope};
 use yew::html::Scope;
 use yew::{html, Callback, Component, Context, Html, Properties};
 
@@ -35,29 +35,13 @@ impl Component for TriggerOptions {
     }
 
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
-        fn option_list(link: &Scope<TriggerOptions>, config: &TriggerConfig) -> Vec<SettingOption> {
-            let a = <triggers::Msgs as AsSettingOption>::get_options::<Msg, Msgs, TriggerOptions>(
-                config, link,
+        let strategy_inputs =
+            <triggers::Msgs as AsSettingOption>::get_options::<Msg, Msgs, TriggerOptions>(
+                &self.config,
+                TotalMsgScope::TriggerMsgScope(ctx.link().clone()),
             );
-            // let option2 = SettingOption::new(
-            //     |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
-            //     link,
-            //     config.t1.percentage.to_string().clone(),
-            //     "T1 FloorPrice %:".to_string(),
-            //     None,
-            // );
-            // let option3 = SettingOption::new(
-            //     |x| Msgs::T1(T1Msg::UpdatePercentage(x.parse().ok())),
-            //     link,
-            //     config.t1.percentage.to_string().clone(),
-            //     "T2 Profit %:".to_string(),
-            //     None,
-            // );
-            a
-        }
-        let strategy_inputs = option_list(ctx.link(), &self.config);
         html! {
-            <div class="flex-col p-5 block p-6 max-w-sm bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 ">
+            <div class="flex-col p-5 block p-6 max-w-sm bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 w-full">
                 <p class="text-2xl dark:text-slate-50 text-slate-900 px-5">
                     {"Tirgger Condition option"}
                 </p>
@@ -92,6 +76,7 @@ impl Component for TriggerOptions {
                 }
             },
         }
+        ctx.props().onupdate.emit(self.config.clone());
         true
     }
 
