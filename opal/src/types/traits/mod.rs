@@ -18,3 +18,9 @@ pub use setting_callback_fn::*;
 
 pub mod as_total_msg;
 pub use as_total_msg::*;
+
+pub mod set_target_coll;
+pub use set_target_coll::*;
+
+pub mod setting_list;
+pub use setting_list::*;

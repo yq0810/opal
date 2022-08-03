@@ -1,4 +1,6 @@
+use crate::area::AreaConfig;
 use crate::components::coll_card::CollCard;
+use chrono::Duration;
 use concat_string::concat_string;
 use gloo::timers::callback::Timeout;
 use multimap::MultiMap;
@@ -38,6 +40,7 @@ const DARK_THEME: &str = "dark";
 const LIGHT_THEME: &str = "light";
 
 pub enum Msg {
+    TimeoutStart,
     SearchStart(Option<i32>),
     SearchSlug(Option<String>),
     ShowCollRefresh(Option<CollInfo>),
@@ -53,6 +56,7 @@ pub enum Msg {
     ToggleSearchType,
     ToggleThemeMode(ThemeMode),
     OptionUpdate(Config),
+    AreaUpdate(AreaConfig),
 }
 impl Msg {}
 
@@ -66,6 +70,7 @@ pub enum ThemeMode {
 pub struct Config {
     pub strategy: StrategyConfig,
     pub trigger: TriggerConfig,
+    pub area: AreaConfig,
 }
 
 #[derive(Clone, PartialEq, Debug, Default)]
@@ -117,9 +122,7 @@ fn timeout_handle(_: html::Scope<App>) -> Timeout {
 
 #[cfg(debug_assertions)]
 fn timeout_handle(link: html::Scope<Index>) -> Timeout {
-    Timeout::new(2000, move || {
-        link.send_message(Msg::SearchSlug(Some("azuki".to_string())))
-    })
+    Timeout::new(500, move || link.send_message(Msg::TimeoutStart))
 }
 
 impl Component for Index {
@@ -167,15 +170,32 @@ impl Component for Index {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         self.first_load = false;
         match msg {
+            Msg::TimeoutStart => {
+                ctx.link().send_future(SearchMode::start_slug(
+                    "azuki".to_string(),
+                    Duration::milliseconds(300),
+                ));
+
+                ctx.link().send_future(SearchMode::start_slug(
+                    "azuki".to_string(),
+                    Duration::milliseconds(1500),
+                ));
+                true
+            }
+
             Msg::SearchSlug(slug) => match slug {
                 Some(slug) => {
-                    ctx.link().send_future(SearchMode::start_slug(slug));
+                    ctx.link()
+                        .send_future(SearchMode::start_slug(slug, Duration::milliseconds(0)));
                     true
                 }
                 None => true,
             },
             Msg::ShowCollRefresh(a) => {
-                self.show_coll = a;
+                self.show_coll = a.clone();
+                a.map(|x| {
+                    self.config.area.favorite.setting.slug = x.slug;
+                });
                 true
             }
             Msg::TargetResults(results) => match results {
@@ -365,6 +385,10 @@ impl Component for Index {
                 self.config = config;
                 true
             }
+            Msg::AreaUpdate(area_config) => {
+                self.config.area = area_config;
+                true
+            }
         }
     }
 
@@ -394,6 +418,7 @@ impl Component for Index {
             .flat_map(|x| x.split("{").map(|x| x.to_string().replace("}", "")))
             .collect::<Vec<_>>();
         let setting_card_callback: Callback<Config> = link.callback(|c| Msg::OptionUpdate(c));
+        let coll_card_callback: Callback<AreaConfig> = link.callback(|c| Msg::AreaUpdate(c));
 
         html! {
             <div class={root_classes}>
@@ -406,7 +431,7 @@ impl Component for Index {
                     first_load={self.first_load} is_busy={self.is_busy}
                 />
                 {match self.show_coll.clone() {
-                    Some(coll) => html!{<CollCard {coll}/>},
+                    Some(coll) => html!{<CollCard {coll} onupdate={coll_card_callback} config={self.config.area.clone()} />},
                     None => html!{},
                 }}
                 <SettingCard onupdate={setting_card_callback} first_load={self.first_load.clone()} config={self.config.clone()} is_busy={self.is_busy} />

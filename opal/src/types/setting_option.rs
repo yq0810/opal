@@ -109,8 +109,15 @@ pub struct SettingActiveToggle {
 }
 
 #[derive(Clone, PartialEq, Debug)]
+pub struct SettingClick {
+    pub label_text: String,
+    pub msg: TotalMsg,
+    pub on_click: Box<Callback<String>>,
+}
+#[derive(Clone, PartialEq, Debug)]
 pub struct SettingOption {
-    pub select: SettingActiveToggle,
-    pub input: SettingValueInput,
+    pub select: Option<SettingActiveToggle>,
+    pub input: Option<SettingValueInput>,
     pub duration: Option<SettingDurationToggle>,
+    pub click: Option<SettingClick>,
 }

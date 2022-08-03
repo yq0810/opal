@@ -2,6 +2,7 @@ pub mod volume;
 use std::{num::ParseIntError, str::FromStr};
 
 use futures::future::SelectAll;
+use opal_derive::ValueOPMacro;
 pub use volume::*;
 
 pub mod one;
@@ -27,29 +28,11 @@ pub struct StrategyConfig {
     pub s_three: Three,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ValueOPMacro)]
 pub enum Msgs {
     One(OneMsg),
     Two(TwoMsg),
     Three(ThreeMsg),
-}
-
-impl ValueOP for Msgs {
-    fn get_value(&self) -> String {
-        match self {
-            Msgs::One(x) => x.get_value(),
-            Msgs::Two(x) => x.get_value(),
-            Msgs::Three(x) => x.get_value(),
-        }
-    }
-
-    fn set_value(&self, new_value: String) -> Self {
-        match self {
-            Msgs::One(x) => Msgs::One(x.set_value(new_value)),
-            Msgs::Two(x) => Msgs::Two(x.set_value(new_value)),
-            Msgs::Three(x) => Msgs::Three(x.set_value(new_value)),
-        }
-    }
 }
 
 impl CallbackMsg for Msgs {

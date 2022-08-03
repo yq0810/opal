@@ -5,4 +5,6 @@ use wasm_bindgen::JsValue;
 pub enum ParserError {
     #[error("Duration Error")]
     DurationError,
+    #[error("Bool Error")]
+    BoolError,
 }

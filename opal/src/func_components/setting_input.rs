@@ -75,26 +75,33 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
     let select_input_ref = NodeRef::default();
     let select_input_ref_2 = select_input_ref.clone();
     let init = {
-        let on_search = option.input.on_change.clone();
-        let value = match option.input.msg.clone() {
-            crate::TotalMsg::StrategyMsg(x) => x.get_value(),
-            crate::TotalMsg::TriggerMsg(x) => x.get_value(),
-        };
-        use_effect(move || {
-            if let Some(input) = input_ref_2.cast::<HtmlInputElement>() {
-                input.set_value(&value);
-            }
-            || ()
+        option.clone().input.map(|input| {
+            let on_search = input.on_change.clone();
+            let value = match input.msg.clone() {
+                crate::TotalMsg::StrategyMsg(x) => x.get_value(),
+                crate::TotalMsg::TriggerMsg(x) => x.get_value(),
+                crate::TotalMsg::CollCardMsg(x) => x.get_value(),
+            };
+            use_effect(move || {
+                if let Some(input) = input_ref_2.cast::<HtmlInputElement>() {
+                    input.set_value(&value);
+                }
+                || ()
+            });
         });
-        let value = match option.select.msg.clone() {
-            crate::TotalMsg::StrategyMsg(x) => x.get_value().parse().unwrap(),
-            crate::TotalMsg::TriggerMsg(x) => x.get_value().parse().unwrap(),
-        };
-        use_effect(move || {
-            if let Some(input) = select_input_ref_2.cast::<HtmlInputElement>() {
-                input.set_checked(value);
-            }
-            || ()
+
+        option.clone().select.map(|x| {
+            let v = match x.msg.clone() {
+                crate::TotalMsg::StrategyMsg(x) => x.get_value().parse().unwrap(),
+                crate::TotalMsg::TriggerMsg(x) => x.get_value().parse().unwrap(),
+                crate::TotalMsg::CollCardMsg(x) => x.get_value().parse().unwrap(),
+            };
+            use_effect(move || {
+                if let Some(input) = select_input_ref_2.cast::<HtmlInputElement>() {
+                    input.set_checked(v);
+                }
+                || ()
+            });
         });
         // on_search.emit(value);
     };
@@ -134,76 +141,97 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         duration
     };
 
-    let oninput = {
+    let input = option.input.map(|input| {
         let text_empty = text_empty.clone();
-        let input_ref = input_ref.clone();
-        let on_search = option.input.on_change.clone();
-        move |_e| {
-            let s = input_ref
+        let input_ref_copy = input_ref.clone();
+        let on_search = input.on_change.clone();
+        let oninput = move |_e| {
+            let s = input_ref_copy
                 .cast::<HtmlInputElement>()
                 .map(|input| input.value())
                 .unwrap_or_default();
             text_empty.set(s.is_empty());
             on_search.emit(s)
+        };
+        html! {
+            <>
+            <div class={toggle_classes.clone()}>{input.label_text.clone()}</div>
+            <input class={input_classes} type="text" ref={input_ref} {oninput} />
+            </>
         }
-    };
-    let toggle_onclick = {
-        let duration_o = option.clone().duration;
-        match duration_o {
-            Some(duration) => Some(move |_e| {
-                let back = match duration.data_ref {
-                    crate::SettingDuration::Days(x) => SettingDuration::Hours(x),
-                    crate::SettingDuration::Hours(x) => SettingDuration::Days(x),
-                };
-                duration.on_change.emit(back.to_string())
-            }),
-            None => None,
+    });
+    let duration = option.duration.clone().map(|duration| {
+        let toggle_classes_o_copy = toggle_classes_o.clone();
+        let display = duration.data_ref.Display();
+        let event = move |_e| {
+            let back = match duration.data_ref {
+                crate::SettingDuration::Days(x) => SettingDuration::Hours(x),
+                crate::SettingDuration::Hours(x) => SettingDuration::Days(x),
+            };
+            duration.on_change.emit(back.to_string())
+        };
+        html! {
+            <div class="flex">
+                <button class={toggle_classes_o_copy} onclick={event}>
+                    {display}
+                </button>
+                <input class={input_classes_duration} type="text" ref={input_duration_value_ref} oninput={oninput_duration_value}/>
+            </div>
         }
-    };
-    let (is_d, time_duration) = match option.duration.clone() {
-        Some(d) => (true, d.data_ref.Display()),
-        None => (false, "".to_string()),
-    };
+    });
 
-    let select_onchange = {
-        let option = option.clone();
-        let on_search = option.select.on_change.clone();
-        let select_input_ref = select_input_ref.clone();
-        move |_e| {
-            let s = select_input_ref
+    let select = option.select.clone().map(|select| {
+        let on_search = select.on_change.clone();
+        let select_input_ref_copy = select_input_ref.clone();
+        let event = move |_e| {
+            let s = select_input_ref_copy
                 .cast::<HtmlInputElement>()
                 .map(|select| select.checked())
                 .unwrap_or_default();
             on_search.emit(s.to_string())
+        };
+        html! {
+            <input type="checkbox" class="px-3"
+                ref={select_input_ref}
+                onclick={event}
+                />
         }
-    };
+    });
+
+    let click = option.click.clone().map(|click| {
+        let toggle_classes_o_copy = toggle_classes_o.clone();
+        let on_click = click.on_click.clone();
+        let value = match click.msg.clone() {
+            crate::TotalMsg::CollCardMsg(x) => x.get_value(),
+            _ => panic!("not coll card"),
+        };
+        let event = move |_e| on_click.emit(value.clone());
+        html! {
+            <button class={toggle_classes_o_copy} onclick={event}>
+                {click.label_text.clone()}
+            </button>
+        }
+    });
 
     html! {
-        <div key={option.input.label_text.clone()}>
+        <div> //key
             <div class={search_bar_classes}>
-                <input type="checkbox" class="px-3"
-                    ref={select_input_ref}
-                    onclick={select_onchange}
-                  />
-                <button class={toggle_classes.clone()} style="" disabled=true >{props.option.input.label_text.clone()}</button>
-                <input class={input_classes} type="text" ref={input_ref} {oninput} />
-                {
-                    if is_d {
-                        let oninput_duration_value = oninput_duration_value.clone().unwrap();
-                        let toggle_onclick = toggle_onclick.clone().unwrap();
-                        html! {
-                            <div class="flex">
-                                <button class={toggle_classes_o} onclick={toggle_onclick}>
-                                    {time_duration}
-                                </button>
-                                <input class={input_classes_duration} type="text" ref={input_duration_value_ref} oninput={oninput_duration_value}/>
-                            </div>
-                        }
-                    } else {
-                        html! {}
-                    }
-
-                }
+                {match select {
+                    Some(select) => select,
+                    None => html! {},
+                }}
+                {match input {
+                    Some(input) => input,
+                    None => html! {},
+                }}
+                {match duration {
+                    Some(duration) => duration,
+                    None => html! {},
+                }}
+                {match click {
+                    Some(click) => click,
+                    None => html! {},
+                }}
             </div>
         </div>
     }

@@ -1,4 +1,5 @@
 pub mod t1;
+use opal_derive::ValueOPMacro;
 pub use t2::*;
 
 pub mod t2;
@@ -22,25 +23,10 @@ pub struct TriggerConfig {
     pub t2: T2,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ValueOPMacro)]
 pub enum Msgs {
     T1(T1Msg),
     T2(T2Msg),
-}
-impl ValueOP for Msgs {
-    fn get_value(&self) -> String {
-        match self {
-            Msgs::T1(x) => x.get_value(),
-            Msgs::T2(x) => x.get_value(),
-        }
-    }
-
-    fn set_value(&self, new_value: String) -> Self {
-        match self {
-            Msgs::T1(x) => Msgs::T1(x.set_value(new_value)),
-            Msgs::T2(x) => Msgs::T2(x.set_value(new_value)),
-        }
-    }
 }
 
 impl AsSettingOption for Msgs {

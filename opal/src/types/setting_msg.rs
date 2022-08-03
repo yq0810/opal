@@ -1,7 +1,9 @@
 use yew::{html::Scope, Callback, Component};
 
 use crate::{
+    area,
     components::{
+        coll_card::{self, CollCard},
         strategy_options::{self, StrategyOptions},
         trigger_options::{self, TriggerOptions},
     },
@@ -17,6 +19,7 @@ use super::strategys_algo;
 pub enum TotalMsg {
     StrategyMsg(strategys::Msgs),
     TriggerMsg(triggers::Msgs),
+    CollCardMsg(area::Msgs),
 }
 impl TotalMsg {
     pub fn get_pair_link(&self, total_link: &TotalMsgScope) -> Box<Callback<String>> {
@@ -26,6 +29,9 @@ impl TotalMsg {
             }
             (TotalMsg::TriggerMsg(x), TotalMsgScope::TriggerMsgScope(link)) => {
                 x.as_callback::<trigger_options::Msg, triggers::Msgs, TriggerOptions>(&link)
+            }
+            (TotalMsg::CollCardMsg(x), TotalMsgScope::CollCardMsgScope(link)) => {
+                x.as_callback::<coll_card::Msg, area::Msgs, CollCard>(&link)
             }
             _ => panic!("TotalMsg::get_pair_link error"),
         }
@@ -52,4 +58,5 @@ pub enum TotalMsgOptions {
 pub enum TotalMsgScope {
     StrategyMsgScope(Scope<StrategyOptions>),
     TriggerMsgScope(Scope<TriggerOptions>),
+    CollCardMsgScope(Scope<CollCard>),
 }

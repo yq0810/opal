@@ -1,3 +1,4 @@
+mod area;
 pub mod components;
 mod func_components;
 mod strategys;
