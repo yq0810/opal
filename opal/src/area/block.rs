@@ -61,7 +61,7 @@ pub struct Block {
 }
 impl SettingList for Block {
     type T = BlockSetting;
-    fn push_setting(&self, setting: Self::T) -> Self {
+    fn push(&self, setting: Self::T) -> Self {
         let mut current_block = self.current.clone();
         current_block.insert(setting.slug.clone(), setting.clone());
 
@@ -70,7 +70,7 @@ impl SettingList for Block {
         block
     }
 
-    fn remove_setting(&self, setting: Self::T) -> Self {
+    fn remove(&self, setting: Self::T) -> Self {
         let mut current_block = self.current.clone();
         current_block.remove(&setting.slug);
 

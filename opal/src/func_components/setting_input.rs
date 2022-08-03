@@ -144,7 +144,9 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
     let input = option.input.map(|input| {
         let text_empty = text_empty.clone();
         let input_ref_copy = input_ref.clone();
+        let input_ref_copy_2 = input_ref.clone();
         let on_search = input.on_change.clone();
+        let on_search_2 = input.on_change.clone();
         let oninput = move |_e| {
             let s = input_ref_copy
                 .cast::<HtmlInputElement>()
@@ -153,10 +155,23 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
             text_empty.set(s.is_empty());
             on_search.emit(s)
         };
+        let onkeypress = {
+            move |e: KeyboardEvent| {
+                if e.key() == "Enter" {
+                    let s = input_ref_copy_2
+                        .cast::<HtmlInputElement>()
+                        .map(|input| input.value())
+                        .unwrap_or_default();
+                    if !s.is_empty() {
+                        on_search_2.emit(s + " ");
+                    }
+                }
+            }
+        };
         html! {
             <>
             <div class={toggle_classes.clone()}>{input.label_text.clone()}</div>
-            <input class={input_classes} type="text" ref={input_ref} {oninput} />
+            <input class={input_classes} type="text" ref={input_ref} {oninput} {onkeypress} />
             </>
         }
     });

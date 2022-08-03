@@ -1,5 +1,5 @@
 pub trait SettingList {
     type T;
-    fn push_setting(&self, setting: Self::T) -> Self;
-    fn remove_setting(&self, setting: Self::T) -> Self;
+    fn push(&self, item: Self::T) -> Self;
+    fn remove(&self, item: Self::T) -> Self;
 }

@@ -19,7 +19,7 @@ use crate::triggers::TriggerConfig;
 use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
 use crate::{
     find_traget_from_floor_active, find_traget_from_profit, strategy_one, strategy_two,
-    ActivePriceResult, CollResult, HTMLDisplay, SQLResult, TargetResult,
+    ActivePriceResult, CollResult, HTMLDisplay, SQLResult, SetTargetColl, TargetResult,
 };
 use crate::{func_components::*, CollInfo};
 
@@ -194,7 +194,8 @@ impl Component for Index {
             Msg::ShowCollRefresh(a) => {
                 self.show_coll = a.clone();
                 a.map(|x| {
-                    self.config.area.favorite.setting.slug = x.slug;
+                    let config = self.config.area.clone();
+                    self.config.area = config.set_target_coll(&x.slug);
                 });
                 true
             }
@@ -408,7 +409,7 @@ impl Component for Index {
         let text_ref = NodeRef::default();
 
         let link = ctx.link();
-        let on_search = link.callback(|x: String| Msg::SearchStart(x.parse().ok()));
+        let on_search = link.callback(|x: String| Msg::SearchSlug(x.parse().ok()));
         let on_toggle = link.callback(|_| Msg::ToggleSearchType);
         let placeholder: &'static str = self.mode.placeholder_text();
 

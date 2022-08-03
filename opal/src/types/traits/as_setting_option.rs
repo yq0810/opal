@@ -21,6 +21,7 @@ pub trait AsSettingOption {
             a @ (Some(_), Some(_), Some(_), None) => a,
             a @ (Some(_), Some(_), None, None) => a,
             a @ (None, None, None, Some(_)) => a,
+            a @ (Some(_), None, None, None) => a,
             _ => todo!(),
         } {
             let input = input_o.clone().map(|input| {

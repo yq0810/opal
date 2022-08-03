@@ -29,6 +29,7 @@ pub enum Msgs {
 pub struct AreaConfig {
     pub favorite: Favorite,
     pub block: Block,
+    pub label: Label,
 }
 
 impl SetTargetColl for AreaConfig {
@@ -36,6 +37,7 @@ impl SetTargetColl for AreaConfig {
         let mut config = self.clone();
         config.favorite.setting = self.favorite.setting.set_target_coll(&target_coll);
         config.block.setting = self.block.setting.set_target_coll(&target_coll);
+        config.label.setting = self.label.setting.set_target_coll(&target_coll);
         config
     }
 }

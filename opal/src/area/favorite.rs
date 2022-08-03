@@ -62,7 +62,7 @@ pub struct Favorite {
 }
 impl SettingList for Favorite {
     type T = FavoriteSetting;
-    fn push_setting(&self, setting: Self::T) -> Self {
+    fn push(&self, setting: Self::T) -> Self {
         let mut current_favorite = self.current.clone();
         current_favorite.insert(setting.slug.clone(), setting.clone());
 
@@ -71,7 +71,7 @@ impl SettingList for Favorite {
         favorite
     }
 
-    fn remove_setting(&self, setting: Self::T) -> Self {
+    fn remove(&self, setting: Self::T) -> Self {
         let mut current_favorite = self.current.clone();
         current_favorite.remove(&setting.slug);
 

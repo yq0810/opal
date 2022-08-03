@@ -12,6 +12,7 @@ use opal_derive::CallbackMsgMacro;
 use opal_derive::SettingCallbackFnMacro;
 use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::str::FromStr;
 
@@ -24,7 +25,8 @@ use crate::{AsInputType, AsTotalMsg, InputType, SettingDuration};
 #[totalMsgName("CollCard")]
 #[page("coll_card")]
 pub enum LabelMsg {
-    Input(Option<LabelSetting>),
+    UpdateInputLabelValue(Option<String>),
+    RemoveInputLabelValue(Option<String>),
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -50,26 +52,28 @@ impl FromStr for LabelSetting {
         })
     }
 }
+type LabelText = String;
+type Slug = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Label {
     pub setting: LabelSetting,
-    pub current: HashMap<String, LabelSetting>,
+    pub current: MultiMap<LabelText, Slug>,
 }
 impl SettingList for Label {
-    type T = LabelSetting;
-    fn push_setting(&self, setting: Self::T) -> Self {
+    type T = String;
+    fn push(&self, setting: Self::T) -> Self {
         let mut current_Label = self.current.clone();
-        current_Label.insert(setting.slug.clone(), setting.clone());
+        current_Label.insert(setting, self.setting.slug.clone());
 
         let mut Label = self.clone();
         Label.current = current_Label;
         Label
     }
 
-    fn remove_setting(&self, setting: Self::T) -> Self {
+    fn remove(&self, setting: Self::T) -> Self {
         let mut current_Label = self.current.clone();
-        current_Label.remove(&setting.slug);
+        current_Label.retain(|k, v| (k == &setting && v == &self.setting.slug) == false);
 
         let mut Label = self.clone();
         Label.current = current_Label;
@@ -89,7 +93,7 @@ impl AsInputType for Label {
     fn input_type(&self) -> InputType {
         InputType::Value((
             "Label",
-            LabelMsg::Input(Some(self.setting.clone())).to_total_msg(),
+            LabelMsg::UpdateInputLabelValue(Some(self.setting.input.clone())).to_total_msg(),
         ))
     }
 }
