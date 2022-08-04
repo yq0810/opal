@@ -28,11 +28,14 @@ pub use input_type::*;
 pub mod setting_msg;
 pub use setting_msg::*;
 
-pub mod traits;
-pub use traits::*;
-
 pub mod parser_error;
 pub use parser_error::*;
 
 pub mod coll_info;
 pub use coll_info::*;
+
+pub mod area;
+pub use area::*;
+
+pub mod setting_tabs;
+pub use setting_tabs::*;

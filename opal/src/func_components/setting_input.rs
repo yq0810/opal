@@ -1,20 +1,7 @@
-use crate::{
-    components::{
-        strategy_options::{self, Msg, StrategyOptions},
-        trigger_options::{self, TriggerOptions},
-    },
-    func_components::*,
-    strategys::{self, Msgs, OneMsg},
-    triggers::{self, T2Msg},
-    SettingCallbackFn, SettingDuration, SettingDurationToggle, SettingOption, SettingValueInput,
-    ValueOP,
-};
-use log::debug;
-use web_sys::{HtmlInputElement, KeyboardEvent, Node};
-use yew::html::IntoPropValue;
+use crate::{SettingDuration, SettingOption, ValueOP};
+use web_sys::{HtmlInputElement, KeyboardEvent};
 use yew::{
-    classes, function_component, functional::*, html, html::ImplicitClone, Callback, NodeRef,
-    Properties,
+    classes, function_component, functional::*, html, html::ImplicitClone, NodeRef, Properties,
 };
 
 #[derive(Clone, PartialEq, Properties)]
@@ -74,9 +61,8 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
     let input_ref_2 = input_ref.clone();
     let select_input_ref = NodeRef::default();
     let select_input_ref_2 = select_input_ref.clone();
-    let init = {
+    let _ = {
         option.clone().input.map(|input| {
-            let on_search = input.on_change.clone();
             let value = match input.msg.clone() {
                 crate::TotalMsg::StrategyMsg(x) => x.get_value(),
                 crate::TotalMsg::TriggerMsg(x) => x.get_value(),
@@ -177,7 +163,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
     });
     let duration = option.duration.clone().map(|duration| {
         let toggle_classes_o_copy = toggle_classes_o.clone();
-        let display = duration.data_ref.Display();
+        let display = duration.data_ref.display();
         let event = move |_e| {
             let back = match duration.data_ref {
                 crate::SettingDuration::Days(x) => SettingDuration::Hours(x),

@@ -1,4 +1,4 @@
-use yew::{html::Scope, Callback, Component};
+use yew::{html::Scope, Callback};
 
 use crate::{
     area,
@@ -9,11 +9,8 @@ use crate::{
     },
     strategys::{self, StrategyConfig},
     triggers::{self, TriggerConfig},
-    AsSettingOption, CallbackMsg, InputType, SettingActiveToggle, SettingDurationToggle,
-    SettingOption, SettingValueInput,
+    CallbackMsg,
 };
-
-use super::strategys_algo;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum TotalMsg {

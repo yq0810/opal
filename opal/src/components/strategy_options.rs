@@ -1,14 +1,7 @@
-use super::setting_card::SettingCard;
 use crate::func_components::SettingInput;
-use crate::strategys::{self, Msgs, One, StrategyConfig, ThreeMsg, Two};
-use crate::{
-    pages::Config,
-    strategys::{OneMsg, TwoMsg},
-    SettingOption,
-};
+use crate::strategys::{self, Msgs, StrategyConfig, ThreeMsg};
+use crate::strategys::{OneMsg, TwoMsg};
 use crate::{AsSettingOption, TotalMsgScope};
-use log::debug;
-use yew::html::Scope;
 use yew::{html, Callback, Component, Context, Html, Properties};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -108,11 +101,11 @@ impl Component for StrategyOptions {
         t
     }
 
-    fn changed(&mut self, ctx: &yew::Context<Self>) -> bool {
+    fn changed(&mut self, _ctx: &yew::Context<Self>) -> bool {
         true
     }
 
-    fn rendered(&mut self, ctx: &yew::Context<Self>, first_render: bool) {}
+    fn rendered(&mut self, _ctx: &yew::Context<Self>, _first_render: bool) {}
 
-    fn destroy(&mut self, ctx: &yew::Context<Self>) {}
+    fn destroy(&mut self, _ctx: &yew::Context<Self>) {}
 }

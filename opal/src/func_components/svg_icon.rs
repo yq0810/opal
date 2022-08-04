@@ -1,7 +1,8 @@
 use concat_string::concat_string;
-use yew::{classes, function_component, html, Html, Properties};
+use yew::{function_component, html, Html, Properties};
 
 #[derive(Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum SvgIcons {
     Home,
     Bookmarks,

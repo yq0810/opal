@@ -22,7 +22,7 @@ pub fn search_bar(props: &SearchBarProps) -> Html {
         {
             let input_ref = input_ref.clone();
             use_effect(move || {
-                if let Some(input) = input_ref.cast::<HtmlInputElement>() {
+                if let Some(_) = input_ref.cast::<HtmlInputElement>() {
                     // let _ = input.focus();
                     // input.set_value("azuki")
                 }

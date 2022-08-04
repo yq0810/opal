@@ -1,9 +1,7 @@
 use concat_string::concat_string;
 use yew::{classes, html, Html};
 
-use crate::{
-    ActivePriceResult, FloorPriceResult, SQLResult, StrategyOne, StrategyTwo, TargetResult,
-};
+use crate::{FloorPriceResult, SQLResult, StrategyOne, StrategyTwo, TargetResult};
 
 pub struct HTMLDisplay {
     pub is_s_1: bool,

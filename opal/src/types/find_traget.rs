@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use log::debug;
 use multimap::MultiMap;
 
-use crate::{pages::Index, ActivePriceResult, CollResult, FloorPriceResult, TargetResult};
+use crate::{ActivePriceResult, CollResult, FloorPriceResult, TargetResult};
 
 pub fn find_first_floor_price(
     slug: &String,

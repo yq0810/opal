@@ -1,7 +1,4 @@
-use crate::area::{
-    self, AreaConfig, Block, BlockMsg, BlockSetting, Favorite, FavoriteMsg, FavoriteSetting,
-    LabelMsg, Msgs,
-};
+use crate::area::{self, AreaConfig, BlockMsg, FavoriteMsg, LabelMsg, Msgs};
 use crate::func_components::SettingInput;
 use crate::{AsSettingOption, CollInfo, SetTargetColl, SettingList, TotalMsgScope};
 use concat_string::concat_string;
@@ -99,8 +96,8 @@ impl Component for CollCard {
             .map(|(key, _)| (key.clone(), label_map.get_vec(key).unwrap().clone()))
             .collect::<Vec<_>>()
             .iter()
-            .filter(|(k, v)| v.contains(&props.config.label.setting.slug))
-            .map(|(k, v)| k.clone())
+            .filter(|(_, v)| v.contains(&props.config.label.setting.slug))
+            .map(|(k, _)| k.clone())
             .collect::<Vec<_>>();
 
         html! {
@@ -214,11 +211,11 @@ impl Component for CollCard {
         true
     }
 
-    fn changed(&mut self, ctx: &Context<Self>) -> bool {
+    fn changed(&mut self, _: &Context<Self>) -> bool {
         true
     }
 
-    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {}
+    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {}
 
-    fn destroy(&mut self, ctx: &Context<Self>) {}
+    fn destroy(&mut self, _ctx: &Context<Self>) {}
 }

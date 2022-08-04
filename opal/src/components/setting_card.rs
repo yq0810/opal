@@ -1,10 +1,9 @@
 use crate::components::strategy_options::StrategyOptions;
 use crate::components::trigger_options::TriggerOptions;
 use crate::func_components::{NavButton, NavButtonProps, SvgIcons};
-use crate::pages::Config;
-use crate::strategys::{OneMsg, StrategyConfig, TwoMsg};
+use crate::strategys::StrategyConfig;
 use crate::triggers::TriggerConfig;
-use crate::SettingOption;
+use crate::SettingCardConfig;
 use yew::html::Scope;
 use yew::{html, Callback, Component, Context, Html, Properties};
 
@@ -16,16 +15,16 @@ pub enum Msg {
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
-    pub onupdate: Callback<Config>,
+    pub onupdate: Callback<SettingCardConfig>,
     // pub current_page: Option<u32>,
     pub first_load: bool,
     pub is_busy: bool,
-    pub config: Config,
+    pub config: SettingCardConfig,
 }
 
 pub struct SettingCard {
     active_tab: u32,
-    config: Config,
+    config: SettingCardConfig,
 }
 
 fn button_list(link: &Scope<SettingCard>, active_tab: u32) -> Vec<NavButtonProps> {
@@ -154,11 +153,11 @@ impl Component for SettingCard {
         }
     }
 
-    fn changed(&mut self, ctx: &Context<Self>) -> bool {
+    fn changed(&mut self, _ctx: &Context<Self>) -> bool {
         true
     }
 
-    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {}
+    fn rendered(&mut self, _ctx: &Context<Self>, _first_renderr: bool) {}
 
-    fn destroy(&mut self, ctx: &Context<Self>) {}
+    fn destroy(&mut self, _ctx: &Context<Self>) {}
 }

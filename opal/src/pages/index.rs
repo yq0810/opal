@@ -1,7 +1,6 @@
 use crate::area::AreaConfig;
 use crate::components::coll_card::CollCard;
 use chrono::Duration;
-use concat_string::concat_string;
 use gloo::timers::callback::Timeout;
 use multimap::MultiMap;
 use sql_js_httpvfs_rs::*;
@@ -14,12 +13,10 @@ use yew::prelude::*;
 #[allow(unused_imports)]
 use log::debug;
 
-use crate::strategys::{One, OneMsg, StrategyConfig, Two, TwoMsg};
-use crate::triggers::TriggerConfig;
-use crate::types::{FloorPriceResult, Query, QueryError, SearchMode, SearchQuery, SearchResults};
+use crate::types::{FloorPriceResult, QueryError, SearchMode, SearchResults};
 use crate::{
-    find_traget_from_floor_active, find_traget_from_profit, strategy_one, strategy_two,
-    ActivePriceResult, CollResult, HTMLDisplay, SQLResult, SetTargetColl, TargetResult,
+    find_traget_from_floor_active, strategy_one, strategy_two, ActivePriceResult, CollResult,
+    HTMLDisplay, SetTargetColl, SettingCardConfig, TargetResult,
 };
 use crate::{func_components::*, CollInfo};
 
@@ -57,6 +54,7 @@ pub enum Msg {
     ToggleThemeMode(ThemeMode),
     OptionUpdate(Config),
     AreaUpdate(AreaConfig),
+    SettingCardUpdate(SettingCardConfig),
 }
 impl Msg {}
 
@@ -68,8 +66,7 @@ pub enum ThemeMode {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Config {
-    pub strategy: StrategyConfig,
-    pub trigger: TriggerConfig,
+    pub setting_card: SettingCardConfig,
     pub area: AreaConfig,
 }
 
@@ -91,15 +88,10 @@ pub struct Index {
     pub coll: MultiMap<String, CollResult>,
     pub config: Config,
     pub one_result: StrategyResult,
-    timeout: Timeout,
+    _timeout: Timeout,
     success_count: i32,
     earn: f64,
     pub show_coll: Option<CollInfo>,
-}
-
-// From https://github.com/yewstack/yew/issues/364#issuecomment-737138847
-async fn wrap<F: std::future::Future>(f: F, finished_callback: yew::Callback<F::Output>) {
-    finished_callback.emit(f.await);
 }
 
 unsafe fn initialize_worker_if_missing() {
@@ -139,15 +131,15 @@ impl Component for Index {
             timeout_handle(link)
         };
         let mut config = Config::default();
-        config.strategy.s_one.volume_rate_value = 30;
-        config.strategy.s_two.volume_total_value = 12500.0;
+        config.setting_card.strategy.s_one.volume_rate_value = 30;
+        config.setting_card.strategy.s_two.volume_total_value = 12500.0;
         Self {
             mode: SearchMode::default(),
             first_load: true,
             is_busy: false,
             displayed_results: SearchResults::default(),
             mql: None,
-            timeout: timeout_handle,
+            _timeout: timeout_handle,
             targets: vec![],
             floor_price: MultiMap::new(),
             active_price: MultiMap::new(),
@@ -293,19 +285,27 @@ impl Component for Index {
                             &&x.slug.slug,
                             &self
                                 .config
+                                .setting_card
                                 .strategy
                                 .s_one
                                 .volume_rate_duration
                                 .to_duration(),
-                            &self.config.strategy.s_three.tx_count_duration.to_duration(),
+                            &self
+                                .config
+                                .setting_card
+                                .strategy
+                                .s_three
+                                .tx_count_duration
+                                .to_duration(),
                             &self.active_price,
                         );
                         let s_2 = strategy_two(&x.create_time, &&x.slug.slug, &self.floor_price);
                         let is_s_1 = s_1.total_volume as i64
-                            > self.config.strategy.s_one.volume_rate_value
-                            && s_1.tx_count > self.config.strategy.s_three.tx_count_value;
-                        let is_s_2 =
-                            s_2.total_volume as f64 > self.config.strategy.s_two.volume_total_value;
+                            > self.config.setting_card.strategy.s_one.volume_rate_value
+                            && s_1.tx_count
+                                > self.config.setting_card.strategy.s_three.tx_count_value;
+                        let is_s_2 = s_2.total_volume as f64
+                            > self.config.setting_card.strategy.s_two.volume_total_value;
 
                         let earn = x.profit_sale_at(&x.compare_ap).unwrap();
                         self.success_count += 1;
@@ -390,6 +390,10 @@ impl Component for Index {
                 self.config.area = area_config;
                 true
             }
+            Msg::SettingCardUpdate(config) => {
+                self.config.setting_card = config;
+                true
+            }
         }
     }
 
@@ -418,7 +422,8 @@ impl Component for Index {
             .split(",")
             .flat_map(|x| x.split("{").map(|x| x.to_string().replace("}", "")))
             .collect::<Vec<_>>();
-        let setting_card_callback: Callback<Config> = link.callback(|c| Msg::OptionUpdate(c));
+        let setting_card_callback: Callback<SettingCardConfig> =
+            link.callback(|c| Msg::SettingCardUpdate(c));
         let coll_card_callback: Callback<AreaConfig> = link.callback(|c| Msg::AreaUpdate(c));
 
         html! {
@@ -435,7 +440,7 @@ impl Component for Index {
                     Some(coll) => html!{<CollCard {coll} onupdate={coll_card_callback} config={self.config.area.clone()} />},
                     None => html!{},
                 }}
-                <SettingCard onupdate={setting_card_callback} first_load={self.first_load.clone()} config={self.config.clone()} is_busy={self.is_busy} />
+                <SettingCard onupdate={setting_card_callback} first_load={self.first_load.clone()} config={self.config.setting_card.clone()} is_busy={self.is_busy} />
                 // <SearchCollResult
                 //     text_ref={text_ref.clone()}
                 //     on_search={on_search.clone()}
@@ -469,9 +474,9 @@ impl Component for Index {
         }
     }
 
-    fn changed(&mut self, ctx: &Context<Self>) -> bool {
+    fn changed(&mut self, _ctx: &Context<Self>) -> bool {
         true
     }
 
-    fn destroy(&mut self, ctx: &Context<Self>) {}
+    fn destroy(&mut self, _ctx: &Context<Self>) {}
 }

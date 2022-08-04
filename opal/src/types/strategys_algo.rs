@@ -4,7 +4,6 @@ use crate::{
 use chrono::{DateTime, Duration, Utc};
 use multimap::MultiMap;
 
-fn slug_volume_total() {}
 #[derive(Copy, Clone, Debug, Default)]
 pub struct StrategyOne {
     pub total_volume: f64,

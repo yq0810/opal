@@ -1,10 +1,8 @@
-use super::setting_card::SettingCard;
 use crate::func_components::SettingInput;
-use crate::triggers::t1::{T1Msg, T1};
-use crate::triggers::{self, Msgs, T2Msg, TriggerConfig, T2};
-use crate::{pages::Config, SettingOption};
-use crate::{AsInputType, AsSettingOption, SettingCallbackFn, TotalMsgScope};
-use yew::html::Scope;
+use crate::triggers::t1::T1Msg;
+use crate::triggers::{self, Msgs, T2Msg, TriggerConfig};
+
+use crate::{AsSettingOption, TotalMsgScope};
 use yew::{html, Callback, Component, Context, Html, Properties};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -80,11 +78,11 @@ impl Component for TriggerOptions {
         true
     }
 
-    fn changed(&mut self, ctx: &yew::Context<Self>) -> bool {
+    fn changed(&mut self, _ctx: &yew::Context<Self>) -> bool {
         true
     }
 
-    fn rendered(&mut self, ctx: &yew::Context<Self>, first_render: bool) {}
+    fn rendered(&mut self, _ctx: &yew::Context<Self>, _first_render: bool) {}
 
-    fn destroy(&mut self, ctx: &yew::Context<Self>) {}
+    fn destroy(&mut self, _ctx: &yew::Context<Self>) {}
 }

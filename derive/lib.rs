@@ -1,23 +1,18 @@
-use proc_macro::Span;
 use proc_macro::TokenStream;
 use syn::DataEnum;
 use syn::DataStruct;
 use syn::Field;
-use syn::Path;
 use syn::Variant;
 use syn::{parse_macro_input, DeriveInput};
 
-use quote::{format_ident, quote, quote_spanned};
+use quote::quote;
 use syn::spanned::Spanned;
-use syn::{Data, Error, Fields, Ident};
+use syn::{Data, Ident};
 
 #[proc_macro_derive(Sqlgogo, attributes(result))]
 pub fn derive_sqlgogo(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let ref name = input.ident;
-    let ref data = input.data;
-
-    let EnumName @ _ = &input.ident;
+    let enum_name @ _ = &input.ident;
 
     let variants = match &input.data {
         Data::Enum(DataEnum { variants: it, .. }) => it,
@@ -35,41 +30,31 @@ pub fn derive_sqlgogo(input: TokenStream) -> TokenStream {
         // From `Foo { … }` get `Foo`
         .map(
             |Variant {
-                 ident: VariantName @ _,
-                 ..
-             }| VariantName,
-        );
-
-    let each_type = variants
-        .iter()
-        // Only keep the `#[physical]`-annotated variants
-        // .filter(|variant| {
-        //     variant
-        //         .attrs
-        //         .iter()
-        //         .any(|attr| attr.path.is_ident("result"))
-        // })
-        // From `Foo { … }` get `Foo`
-        .map(
-            |Variant {
                  ident: variant_name @ _,
                  ..
-             }| {
-                let new_type_name = format!(
-                    "{}Result",
-                    variant_name
-                        .to_string()
-                        .split("By")
-                        .collect::<Vec<_>>()
-                        .first()
-                        .unwrap()
-                );
-                Ident::new(&new_type_name, variant_name.span())
-            },
+             }| variant_name,
         );
 
+    let each_type = variants.iter().map(
+        |Variant {
+             ident: variant_name @ _,
+             ..
+         }| {
+            let new_type_name = format!(
+                "{}Result",
+                variant_name
+                    .to_string()
+                    .split("By")
+                    .collect::<Vec<_>>()
+                    .first()
+                    .unwrap()
+            );
+            Ident::new(&new_type_name, variant_name.span())
+        },
+    );
+
     let expanded = quote! {
-        impl Entrys for #EnumName { // <- Assumes there being no generics.
+        impl Entrys for #enum_name { // <- Assumes there being no generics.
             fn entrys<T> (self: &'_ Self, js: JsValue)
               -> Vec<T> where for<'a> T: Deserialize<'a>
             {
@@ -90,20 +75,16 @@ pub fn derive_sqlgogo(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(ValueOPMacro)]
 pub fn derive_value_op(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let ref name = input.ident;
-    let ref data = input.data;
-
-    let EnumName @ _ = &input.ident;
-
+    let enum_name @ _ = &input.ident;
     let variants = match &input.data {
         Data::Enum(DataEnum { variants: it, .. }) => it,
         _ => unreachable!(),
     };
     let each_physical_variant = variants.iter().map(
         |Variant {
-             ident: VariantName @ v,
+             ident: variant_name @ _,
              ..
-         }| VariantName,
+         }| variant_name,
     );
 
     let is_top_msg = variants.iter().find(|x| {
@@ -120,15 +101,11 @@ pub fn derive_value_op(input: TokenStream) -> TokenStream {
 
         let f = format!("{:?}", fields);
         f.contains("Msg")
-        // syn::Ident::new(&f, x.span())
     });
-    // .find(|x| x.contains("Msg"))
-    // .is_some();
     let each_physical_variant_copy = each_physical_variant.clone();
-
     let expanded = if is_top_msg.is_some() {
         quote! {
-            impl ValueOP for #EnumName { // <- Assumes there being no generics.
+            impl ValueOP for #enum_name { // <- Assumes there being no generics.
                 fn get_value (self: &'_ Self)
                 -> String
                 {
@@ -156,7 +133,7 @@ pub fn derive_value_op(input: TokenStream) -> TokenStream {
         }
     } else {
         quote! {
-            impl ValueOP for #EnumName { // <- Assumes there being no generics.
+            impl ValueOP for #enum_name { // <- Assumes there being no generics.
                 fn get_value (self: &'_ Self)
                   -> String
                 {
@@ -190,13 +167,11 @@ pub fn derive_value_op(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(AsTotalMsgMacro, attributes(totalMsgName))]
 pub fn derive_as_total_msg(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let ref name = input.ident;
-    let ref data = input.data;
 
-    let EnumName @ _ = &input.ident;
+    let enum_name @ _ = &input.ident;
 
-    let msg_name = EnumName.to_string().replace("Msg", "");
-    let msg_name_i = Ident::new(&msg_name, EnumName.span());
+    let msg_name = enum_name.to_string().replace("Msg", "");
+    let msg_name_i = Ident::new(&msg_name, enum_name.span());
     // debug!("{:#?}", input);
 
     let total_msg_name = &input
@@ -216,7 +191,7 @@ pub fn derive_as_total_msg(input: TokenStream) -> TokenStream {
         .unwrap();
 
     let expanded = quote! {
-        impl AsTotalMsg for #EnumName { // <- Assumes there being no generics.
+        impl AsTotalMsg for #enum_name { // <- Assumes there being no generics.
             fn to_total_msg (self: &'_ Self)
               -> TotalMsg
             {
@@ -232,8 +207,6 @@ pub fn derive_as_total_msg(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(AsSettingOptionMacro, attributes(page))]
 pub fn derive_as_setting_option(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let ref name = input.ident;
-    let ref data = input.data;
     let struct_name @ _ = &input.ident;
 
     let variants = match &input.data {
@@ -242,8 +215,9 @@ pub fn derive_as_setting_option(input: TokenStream) -> TokenStream {
     };
     let each_physical_variant = variants.iter().map(
         |Field {
-             ident: VariantName, ..
-         }| VariantName,
+             ident: variant_name,
+             ..
+         }| variant_name,
     );
     // debug!("{:#?}", input);
 
@@ -301,13 +275,11 @@ pub fn derive_as_setting_option(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(SettingCallbackFnMacro)]
 pub fn derive_setting_callback_fn(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let ref name = input.ident;
-    let ref data = input.data;
 
-    let EnumName @ _ = &input.ident;
+    let enum_name @ _ = &input.ident;
 
-    let msg_name = EnumName.to_string().replace("Msg", "OptionUpdate");
-    let msg_name_i = Ident::new(&msg_name, EnumName.span());
+    let msg_name = enum_name.to_string().replace("Msg", "OptionUpdate");
+    let msg_name_i = Ident::new(&msg_name, enum_name.span());
 
     let variants = match &input.data {
         Data::Enum(DataEnum { variants: it, .. }) => it,
@@ -315,9 +287,9 @@ pub fn derive_setting_callback_fn(input: TokenStream) -> TokenStream {
     };
     let each_physical_variant = variants.iter().map(
         |Variant {
-             ident: VariantName @ v,
+             ident: variant_name @ _,
              ..
-         }| VariantName,
+         }| variant_name,
     );
 
     let is_top_msg = variants.iter().find(|x| {
@@ -349,19 +321,16 @@ pub fn derive_setting_callback_fn(input: TokenStream) -> TokenStream {
             Ident::new(&new_type_name, variant_name.span())
         },
     );
-    // .find(|x| x.contains("Msg"))
-    // .is_some();
-    let each_physical_variant_copy = each_physical_variant.clone();
 
     let expanded = if is_top_msg.is_some() {
         quote! {
-            impl SettingCallbackFn<PMsg> for #EnumName { // <- Assumes there being no generics.
-                fn msgFn() -> Box<dyn Fn(Self) -> PMsg> {
+            impl SettingCallbackFn<PMsg> for #enum_name { // <- Assumes there being no generics.
+                fn msg_fn() -> Box<dyn Fn(Self) -> PMsg> {
                     let f = |x| -> PMsg {
                         match x {
                             #(
                                 | Self::#each_physical_variant ( v ) => {
-                                    <#each_type as SettingCallbackFn<PMsg>>::msgFn()(v)
+                                    <#each_type as SettingCallbackFn<PMsg>>::msg_fn()(v)
                                 },
                             )*
                         }
@@ -372,8 +341,8 @@ pub fn derive_setting_callback_fn(input: TokenStream) -> TokenStream {
         }
     } else {
         quote! {
-            impl SettingCallbackFn<PMsg> for #EnumName { // <- Assumes there being no generics.
-                fn msgFn() -> Box<dyn Fn(Self) -> PMsg> {
+            impl SettingCallbackFn<PMsg> for #enum_name { // <- Assumes there being no generics.
+                fn msg_fn() -> Box<dyn Fn(Self) -> PMsg> {
                     let f = |x| -> PMsg {
                         match x {
                             #(
@@ -395,10 +364,7 @@ pub fn derive_setting_callback_fn(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(CallbackMsgMacro, attributes(page))]
 pub fn derive_call_back_msg(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let ref name = input.ident;
-    let ref data = input.data;
-
-    let EnumName @ _ = &input.ident;
+    let enum_name @ _ = &input.ident;
 
     let variants = match &input.data {
         Data::Enum(DataEnum { variants: it, .. }) => it,
@@ -406,9 +372,9 @@ pub fn derive_call_back_msg(input: TokenStream) -> TokenStream {
     };
     let each_physical_variant = variants.iter().map(
         |Variant {
-             ident: VariantName @ v,
+             ident: variant_name @ _,
              ..
-         }| VariantName,
+         }| variant_name,
     );
 
     let is_top_msg = variants.iter().find(|x| {
@@ -448,7 +414,7 @@ pub fn derive_call_back_msg(input: TokenStream) -> TokenStream {
 
     let expanded = if is_top_msg.is_some() {
         quote! {
-                impl CallbackMsg for #EnumName { // <- Assumes there being no generics.
+                impl CallbackMsg for #enum_name { // <- Assumes there being no generics.
                     type O = #page::Msg;
 
                     fn as_callback<M, T, C>(&self, link: &Scope<C>) -> Box<Callback<String>>
@@ -474,7 +440,7 @@ pub fn derive_call_back_msg(input: TokenStream) -> TokenStream {
             use yew::Callback;
             use yew::Component;
             use crate::CallbackMsg;
-            impl CallbackMsg for #EnumName { // <- Assumes there being no generics.
+            impl CallbackMsg for #enum_name { // <- Assumes there being no generics.
                 type O = crate::components::#page::Msg;
 
                 fn as_callback<M, T, C>(&self, link: &Scope<C>) -> Box<Callback<String>>

@@ -1,20 +1,10 @@
-use std::cell::RefCell;
 use std::fmt::Display;
-use std::marker::PhantomData;
-use std::num::ParseIntError;
-use std::rc::Rc;
 use std::str::FromStr;
 
 use chrono::Duration;
-use web_sys::Node;
-use yew::html::ImplicitClone;
-use yew::{html::Scope, NodeRef};
-use yew::{Callback, Component};
+use yew::Callback;
 
-use crate::components::setting_card::SettingCard;
-use crate::components::strategy_options::StrategyOptions;
-use crate::pages::{Index, Msg};
-use crate::{CallbackMsg, InputType, ParserError, TotalMsg};
+use crate::{ParserError, TotalMsg};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SettingDuration {
@@ -75,13 +65,13 @@ impl Default for SettingDuration {
 }
 
 impl SettingDuration {
-    pub fn Display(&self) -> String {
+    pub fn display(&self) -> String {
         match &self {
             SettingDuration::Days(_) => "/Days".to_string(),
             SettingDuration::Hours(_) => "/Hours".to_string(),
         }
     }
-    pub fn Value(&self) -> i32 {
+    pub fn value(&self) -> i32 {
         match &self {
             SettingDuration::Days(x) => x.clone(),
             SettingDuration::Hours(x) => x.clone(),

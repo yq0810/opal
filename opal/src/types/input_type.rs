@@ -1,13 +1,9 @@
-use yew::{html::Scope, Component};
+use crate::TotalMsg;
 
-use crate::{strategys, triggers, AsSettingOption, TotalMsg};
-
-use super::{setting_option::SettingDuration, strategys_algo};
+use super::setting_option::SettingDuration;
 
 type LabelText = &'static str;
 type LabelText2 = String;
-type LabelValue = String;
-type SelectValue = bool;
 
 type InputValue = (LabelText, TotalMsg);
 type InputDuration = (SettingDuration, TotalMsg);
@@ -15,10 +11,10 @@ type InputSelect = TotalMsg;
 type InputClick = (LabelText2, TotalMsg);
 
 pub enum InputType {
-    Value(InputValue),
     SelectValue(InputValue, InputSelect),
     SelectValueDuration(InputValue, InputSelect, InputDuration),
     Button(InputClick),
+    Value(InputValue),
 }
 
 impl InputType {

@@ -1,6 +1,4 @@
-use crate::{
-    find_first_floor_price, pages::Msg, strategy_one, types::unit::my_date_format, CollInfo, Query,
-};
+use crate::{pages::Msg, strategy_one, types::unit::my_date_format, CollInfo, Query};
 use chrono::{DateTime, Duration, Utc};
 use futures::Future;
 use multimap::MultiMap;
