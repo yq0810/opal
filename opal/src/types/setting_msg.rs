@@ -5,9 +5,11 @@ use crate::{
     components::{
         coll_card::{self, CollCard},
         strategy_options::{self, StrategyOptions},
+        target_options::TargetOptions,
         trigger_options::{self, TriggerOptions},
     },
     strategys::{self, StrategyConfig},
+    targets,
     triggers::{self, TriggerConfig},
     CallbackMsg,
 };
@@ -17,6 +19,7 @@ pub enum TotalMsg {
     StrategyMsg(strategys::Msgs),
     TriggerMsg(triggers::Msgs),
     CollCardMsg(area::Msgs),
+    TargetMsg(targets::Msgs),
 }
 impl TotalMsg {
     pub fn get_pair_link(&self, total_link: &TotalMsgScope) -> Box<Callback<String>> {
@@ -56,4 +59,5 @@ pub enum TotalMsgScope {
     StrategyMsgScope(Scope<StrategyOptions>),
     TriggerMsgScope(Scope<TriggerOptions>),
     CollCardMsgScope(Scope<CollCard>),
+    TargetMsgScope(Scope<TargetOptions>),
 }

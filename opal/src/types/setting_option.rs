@@ -81,7 +81,7 @@ impl SettingDuration {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SettingValueInput {
-    pub label_text: String,
+    pub label_text: Option<String>,
     pub msg: TotalMsg,
     pub on_change: Box<Callback<String>>,
 }
@@ -100,7 +100,7 @@ pub struct SettingActiveToggle {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SettingClick {
-    pub label_text: String,
+    pub label_text: Option<String>,
     pub msg: TotalMsg,
     pub on_click: Box<Callback<String>>,
 }

@@ -1,10 +1,11 @@
 use crate::area::Msgs;
+use crate::components;
+use crate::InputValue;
+use crate::LabelText;
 use crate::ParserError;
 use crate::SetTargetColl;
 use crate::SettingCallbackFn;
 use crate::SettingList;
-use crate::TotalMsg;
-use crate::ValueOP;
 use multimap::MultiMap;
 use opal_derive::CallbackMsgMacro;
 use opal_derive::SettingCallbackFnMacro;
@@ -12,7 +13,6 @@ use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::components::coll_card::Msg as PMsg;
 use crate::{AsInputType, AsTotalMsg, InputType};
 
 #[derive(
@@ -48,7 +48,6 @@ impl FromStr for LabelSetting {
         })
     }
 }
-type LabelText = String;
 type Slug = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -60,7 +59,7 @@ impl SettingList for Label {
     type T = String;
     fn push(&self, setting: Self::T) -> Self {
         let mut current_label = self.current.clone();
-        current_label.insert(setting, self.setting.slug.clone());
+        current_label.insert(setting.clone().into(), self.setting.slug.clone());
 
         let mut label = self.clone();
         label.current = current_label;
@@ -69,7 +68,7 @@ impl SettingList for Label {
 
     fn remove(&self, setting: Self::T) -> Self {
         let mut current_label = self.current.clone();
-        current_label.retain(|k, v| (k == &setting && v == &self.setting.slug) == false);
+        current_label.retain(|k, v| (k.0 == setting && v == &self.setting.slug) == false);
 
         let mut label = self.clone();
         label.current = current_label;
@@ -87,9 +86,11 @@ impl SetTargetColl for LabelSetting {
 
 impl AsInputType for Label {
     fn input_type(&self) -> InputType {
-        InputType::Value((
-            "Label",
-            LabelMsg::UpdateInputLabelValue(Some(self.setting.input.clone())).to_total_msg(),
-        ))
+        InputType::Value(
+            LabelText("Label".to_string()),
+            InputValue(
+                LabelMsg::UpdateInputLabelValue(Some(self.setting.input.clone())).to_total_msg(),
+            ),
+        )
     }
 }

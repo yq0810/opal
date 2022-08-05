@@ -21,6 +21,8 @@ use crate::{
 use crate::{func_components::*, CollInfo};
 
 use crate::components::setting_card::SettingCard;
+
+use super::index_config;
 const DB_CONFIG: &str = r#"
 {
     "from": "inline",
@@ -130,9 +132,7 @@ impl Component for Index {
             let link = _ctx.link().clone();
             timeout_handle(link)
         };
-        let mut config = Config::default();
-        config.setting_card.strategy.s_one.volume_rate_value = 30;
-        config.setting_card.strategy.s_two.volume_total_value = 12500.0;
+
         Self {
             mode: SearchMode::default(),
             first_load: true,
@@ -146,7 +146,7 @@ impl Component for Index {
             success_count: 0,
             earn: 0.0,
             coll: MultiMap::new(),
-            config,
+            config: index_config(),
             one_result: Default::default(),
             show_coll: None,
         }

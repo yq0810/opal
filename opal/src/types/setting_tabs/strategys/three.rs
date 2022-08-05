@@ -1,10 +1,15 @@
+use crate::SettingCallbackFn;
 use crate::{
-    strategys::Msgs, AsInputType, AsTotalMsg, InputType, SettingDuration, TotalMsg, ValueOP,
+    components, strategys::Msgs, AsInputType, AsTotalMsg, InputDuration, InputSelect, InputType,
+    InputValue, LabelText, SettingDuration,
 };
-use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
+use opal_derive::{AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro, ValueOPMacro};
 
-#[derive(Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro)]
+#[derive(
+    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
+)]
 #[totalMsgName("Strategy")]
+#[page("strategy_options")]
 pub enum ThreeMsg {
     UpdateTxCountValue(Option<i64>),
     UpdateTxCountDuration(Option<SettingDuration>),
@@ -20,13 +25,11 @@ pub struct Three {
 
 impl AsInputType for Three {
     fn input_type(&self) -> InputType {
-        InputType::SelectValueDuration(
-            (
-                "Tx Count",
-                ThreeMsg::UpdateTxCountValue(Some(self.tx_count_value)).to_total_msg(),
-            ),
-            ThreeMsg::UpdateTxCountSelect(Some(self.tx_count_select)).to_total_msg(),
-            (
+        InputType::ValueSelectDuration(
+            LabelText("Tx Count".to_string()),
+            InputValue(ThreeMsg::UpdateTxCountValue(Some(self.tx_count_value)).to_total_msg()),
+            InputSelect(ThreeMsg::UpdateTxCountSelect(Some(self.tx_count_select)).to_total_msg()),
+            InputDuration(
                 self.tx_count_duration.clone(),
                 ThreeMsg::UpdateTxCountDuration(Some(self.tx_count_duration.clone()))
                     .to_total_msg(),

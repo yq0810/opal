@@ -1,10 +1,14 @@
 use super::Msgs;
-use crate::ValueOP;
-use crate::{AsInputType, AsTotalMsg, InputType, TotalMsg};
-use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
+use crate::LabelText;
+use crate::SettingCallbackFn;
+use crate::{components, AsInputType, AsTotalMsg, InputSelect, InputType, InputValue};
+use opal_derive::{AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro, ValueOPMacro};
 
-#[derive(Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro)]
+#[derive(
+    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
+)]
 #[totalMsgName("Strategy")]
+#[page("strategy_options")]
 pub enum TwoMsg {
     UpdateVolumeTotalValue(Option<f64>),
     UpdateVolumeTotalSelect(Option<bool>),
@@ -18,12 +22,14 @@ pub struct Two {
 
 impl AsInputType for Two {
     fn input_type(&self) -> InputType {
-        InputType::SelectValue(
-            (
-                "Total volume",
+        InputType::ValueSelect(
+            LabelText("Total volume".to_string()),
+            InputValue(
                 TwoMsg::UpdateVolumeTotalValue(Some(self.volume_total_value)).to_total_msg(),
             ),
-            TwoMsg::UpdateVolumeTotalSelect(Some(self.volume_total_select)).to_total_msg(),
+            InputSelect(
+                TwoMsg::UpdateVolumeTotalSelect(Some(self.volume_total_select)).to_total_msg(),
+            ),
         )
     }
 }

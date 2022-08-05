@@ -23,7 +23,6 @@ pub struct Props {
 }
 
 pub struct SettingCard {
-    active_tab: u32,
     config: SettingCardConfig,
 }
 
@@ -76,15 +75,19 @@ impl Component for SettingCard {
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
         Self {
-            active_tab: 3,
             config: props.config.clone(),
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let select_tab = self.active_tab;
-        let dynamic_css = { format!(r#"transform: translateY(calc(100% * {select_tab}))"#) };
-        let nav_buttons = button_list(ctx.link(), self.active_tab);
+        let select_tab = self.config.active_tab;
+        let dynamic_css = {
+            format!(
+                r#"transform: translateY(calc(100% * {}))"#,
+                select_tab.clone()
+            )
+        };
+        let nav_buttons = button_list(ctx.link(), select_tab.clone());
         let strategy_config_onupdate = {
             ctx.link()
                 .callback(|config| Msg::StrategyConfigUpdate(config))
@@ -123,7 +126,7 @@ impl Component for SettingCard {
                         //tab
                     </div>
                     <div class="flex rounded-r-md antialiased bg-gray-400 p-8 w-full">
-                        {match self.active_tab {
+                        {match select_tab {
                             3 => html!{<StrategyOptions onupdate={strategy_config_onupdate} config={self.config.strategy.clone()}/>},
                             2 => html!{<TriggerOptions onupdate={trigger_config_onupdate} config={self.config.trigger.clone()}/>},
                             _ => html!{}
@@ -137,7 +140,7 @@ impl Component for SettingCard {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::ActiveTab(x) => {
-                self.active_tab = x;
+                self.config.active_tab = x;
                 true
             }
             Msg::StrategyConfigUpdate(c) => {

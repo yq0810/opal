@@ -124,7 +124,7 @@ impl Component for CollCard {
 
                           </div>
                           <div>
-                            { labels.iter().map(|x| label_display(x.clone())).collect::<Html>() }
+                            { labels.iter().map(|x| label_display(x.clone().into())).collect::<Html>() }
                           </div>
                       </div>
                       <div class="w-32 justify-center">

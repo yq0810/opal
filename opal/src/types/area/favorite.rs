@@ -1,10 +1,9 @@
 use crate::area::Msgs;
+use crate::InputClick;
 use crate::ParserError;
 use crate::SetTargetColl;
 use crate::SettingCallbackFn;
 use crate::SettingList;
-use crate::TotalMsg;
-use crate::ValueOP;
 use concat_string::concat_string;
 use opal_derive::CallbackMsgMacro;
 use opal_derive::SettingCallbackFnMacro;
@@ -13,7 +12,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::components::coll_card::Msg as PMsg;
+use crate::components;
 use crate::{AsInputType, AsTotalMsg, InputType};
 
 #[derive(
@@ -96,9 +95,9 @@ impl AsInputType for Favorite {
             setting
         };
         let title = if exist { "UnFavorite" } else { "Favorite" };
-        InputType::Button((
-            concat_string!(title, "❤️"),
-            FavoriteMsg::Click(Some(setting.clone())).to_total_msg(),
-        ))
+        InputType::Button(
+            concat_string!(title, "❤️").into(),
+            InputClick(FavoriteMsg::Click(Some(setting.clone())).to_total_msg()),
+        )
     }
 }

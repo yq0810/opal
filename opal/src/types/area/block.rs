@@ -3,13 +3,12 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use crate::area::Msgs;
-use crate::components::coll_card::Msg as PMsg;
+use crate::components;
+use crate::InputClick;
 use crate::ParserError;
 use crate::SetTargetColl;
 use crate::SettingCallbackFn;
 use crate::SettingList;
-use crate::TotalMsg;
-use crate::ValueOP;
 use concat_string::concat_string;
 use opal_derive::CallbackMsgMacro;
 use opal_derive::SettingCallbackFnMacro;
@@ -97,9 +96,9 @@ impl AsInputType for Block {
             setting
         };
         let title = if exist { "UnBlock" } else { "Block" };
-        InputType::Button((
-            concat_string!(title, "🚫"),
-            BlockMsg::Click(Some(setting.clone())).to_total_msg(),
-        ))
+        InputType::Button(
+            concat_string!(title, "🚫").into(),
+            InputClick(BlockMsg::Click(Some(setting.clone())).to_total_msg()),
+        )
     }
 }

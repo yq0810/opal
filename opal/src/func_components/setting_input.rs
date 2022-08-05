@@ -67,6 +67,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
                 crate::TotalMsg::StrategyMsg(x) => x.get_value(),
                 crate::TotalMsg::TriggerMsg(x) => x.get_value(),
                 crate::TotalMsg::CollCardMsg(x) => x.get_value(),
+                crate::TotalMsg::TargetMsg(x) => x.get_value(),
             };
             use_effect(move || {
                 if let Some(input) = input_ref_2.cast::<HtmlInputElement>() {
@@ -81,6 +82,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
                 crate::TotalMsg::StrategyMsg(x) => x.get_value().parse().unwrap(),
                 crate::TotalMsg::TriggerMsg(x) => x.get_value().parse().unwrap(),
                 crate::TotalMsg::CollCardMsg(x) => x.get_value().parse().unwrap(),
+                crate::TotalMsg::TargetMsg(x) => x.get_value().parse().unwrap(),
             };
             use_effect(move || {
                 if let Some(input) = select_input_ref_2.cast::<HtmlInputElement>() {
@@ -156,7 +158,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         };
         html! {
             <>
-            <div class={toggle_classes.clone()}>{input.label_text.clone()}</div>
+            <div class={toggle_classes.clone()}>{input.label_text.unwrap_or_default()}</div>
             <input class={input_classes} type="text" ref={input_ref} {oninput} {onkeypress} />
             </>
         }
@@ -209,7 +211,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         let event = move |_e| on_click.emit(value.clone());
         html! {
             <button class={toggle_classes_o_copy} onclick={event}>
-                {click.label_text.clone()}
+                {click.label_text.unwrap_or_default()}
             </button>
         }
     });
