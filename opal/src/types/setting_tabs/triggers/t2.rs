@@ -1,17 +1,11 @@
-use crate::components;
-use crate::triggers::Msgs;
 use crate::InputSelect;
 use crate::InputValue;
 use crate::LabelText;
-use crate::SettingCallbackFn;
-use crate::{AsInputType, AsTotalMsg};
-use opal_derive::CallbackMsgMacro;
-use opal_derive::SettingCallbackFnMacro;
-use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
 
-#[derive(
-    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
-)]
+use crate::AsInputType;
+use opal_derive::WidgetMsg;
+
+#[derive(Clone, Debug, PartialEq, WidgetMsg)]
 #[totalMsgName("Trigger")]
 #[page("trigger_options")]
 pub enum T2Msg {

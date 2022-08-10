@@ -1,17 +1,11 @@
-use crate::strategys::Msgs;
+use crate::traits::AsInputType;
 use crate::InputSelect;
-use crate::InputValue;
-use crate::LabelText;
-use crate::SettingCallbackFn;
-use opal_derive::CallbackMsgMacro;
-use opal_derive::SettingCallbackFnMacro;
-use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
+use crate::InputType;
+use crate::SettingDuration;
+use crate::{InputValue, LabelText};
+use opal_derive::WidgetMsg;
 
-use crate::{components, AsInputType, AsTotalMsg, InputType, SettingDuration};
-
-#[derive(
-    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
-)]
+#[derive(Clone, Debug, PartialEq, WidgetMsg)]
 #[totalMsgName("Strategy")]
 #[page("strategy_options")]
 pub enum OneMsg {

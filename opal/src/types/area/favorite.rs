@@ -1,23 +1,18 @@
-use crate::area::Msgs;
+use crate::traits::filter_by_coll::FilterByColl;
+use crate::FundingColl;
 use crate::InputClick;
 use crate::ParserError;
 use crate::SetTargetColl;
-use crate::SettingCallbackFn;
 use crate::SettingList;
 use concat_string::concat_string;
-use opal_derive::CallbackMsgMacro;
-use opal_derive::SettingCallbackFnMacro;
-use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
+use opal_derive::WidgetMsg;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::components;
-use crate::{AsInputType, AsTotalMsg, InputType};
+use crate::{AsInputType, InputType};
 
-#[derive(
-    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
-)]
+#[derive(Clone, Debug, PartialEq, WidgetMsg)]
 #[totalMsgName("CollCard")]
 #[page("coll_card")]
 pub enum FavoriteMsg {
@@ -57,6 +52,17 @@ pub struct Favorite {
     pub setting: FavoriteSetting,
     pub current: HashMap<String, FavoriteSetting>,
 }
+
+impl FilterByColl for Favorite {
+    fn filter_by_coll(&self, coll: &FundingColl) -> bool {
+        if let Some(favorite) = self.current.get(&coll.db.slug) {
+            favorite.bool
+        } else {
+            false
+        }
+    }
+}
+
 impl SettingList for Favorite {
     type T = FavoriteSetting;
     fn push(&self, setting: Self::T) -> Self {

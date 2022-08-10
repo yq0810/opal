@@ -28,6 +28,7 @@ pub fn expanded(input: DeriveInput) -> TokenStream {
 
     let expanded = quote! {
         use crate::TotalMsg;
+        use super::Msgs;
         impl AsTotalMsg for #enum_name { // <- Assumes there being no generics.
             fn to_total_msg (self: &'_ Self)
               -> TotalMsg

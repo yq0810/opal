@@ -39,3 +39,6 @@ pub use area::*;
 
 pub mod setting_tabs;
 pub use setting_tabs::*;
+
+pub mod funding;
+pub use funding::*;

@@ -1,16 +1,10 @@
-use crate::targets::Msgs;
 use crate::InputSelect;
 use crate::LabelText;
-use crate::SettingCallbackFn;
-use opal_derive::CallbackMsgMacro;
-use opal_derive::SettingCallbackFnMacro;
-use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
+use opal_derive::WidgetMsg;
 
-use crate::{components, AsInputType, AsTotalMsg, InputType};
+use crate::{AsInputType, InputType};
 
-#[derive(
-    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
-)]
+#[derive(Clone, Debug, PartialEq, WidgetMsg)]
 #[totalMsgName("Target")]
 #[page("target_options")]
 pub enum FullMsg {
@@ -25,7 +19,7 @@ pub struct Full {
 impl AsInputType for Full {
     fn input_type(&self) -> InputType {
         InputType::Select(
-            LabelText("ALL".to_string()),
+            LabelText("ALL (except blocked)".to_string()),
             InputSelect(FullMsg::Select(Some(self.select)).to_total_msg()),
         )
     }

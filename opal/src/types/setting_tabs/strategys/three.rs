@@ -1,13 +1,9 @@
-use crate::SettingCallbackFn;
 use crate::{
-    components, strategys::Msgs, AsInputType, AsTotalMsg, InputDuration, InputSelect, InputType,
-    InputValue, LabelText, SettingDuration,
+    AsInputType, InputDuration, InputSelect, InputType, InputValue, LabelText, SettingDuration,
 };
-use opal_derive::{AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro, ValueOPMacro};
+use opal_derive::WidgetMsg;
 
-#[derive(
-    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
-)]
+#[derive(Clone, Debug, PartialEq, WidgetMsg)]
 #[totalMsgName("Strategy")]
 #[page("strategy_options")]
 pub enum ThreeMsg {

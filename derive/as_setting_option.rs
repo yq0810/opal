@@ -41,6 +41,7 @@ pub fn expanded(input: DeriveInput) -> TokenStream {
         use crate::SettingOption;
         use crate::AsSettingOption;
         use crate::traits::as_input_type::AsInputType;
+
         impl AsSettingOption for Msgs {
             type O = #page::Msg;
             type Config = #config;

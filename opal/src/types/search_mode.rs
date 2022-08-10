@@ -1,4 +1,9 @@
-use crate::{pages::Msg, strategy_one, types::unit::my_date_format, CollInfo, Query};
+use crate::{
+    pages::{Config, Msg},
+    strategy_one,
+    types::unit::my_date_format,
+    CollInfo, Market, MarketData, PickColl, Query, QueryError,
+};
 use chrono::{DateTime, Duration, Utc};
 use futures::Future;
 use multimap::MultiMap;
@@ -89,23 +94,20 @@ impl SearchMode {
         }
     }
 
-    pub fn start(diff_p: i32) -> impl Future<Output = Msg> {
+    pub fn start(config: Config) -> impl Future<Output = Msg> {
         async move {
-            let msg = SearchQuery::exec_query::<FloorPriceResult>(SearchQuery::FloorPrice).await;
-            let msgs2 =
-                SearchQuery::exec_query::<ActivePriceResult>(SearchQuery::ActivePrice).await;
-            let msgs3 = SearchQuery::exec_query::<CollResult>(SearchQuery::Coll).await;
-            Msg::ShowRefresh(
-                msg.clone().unwrap(),
-                msgs2
-                    .clone()
-                    .unwrap()
-                    .into_iter()
-                    .filter(|x| x.price < 500.0)
-                    .collect(),
-                msgs3.clone().unwrap(),
-                diff_p,
-            )
+            let market = Market::new();
+            let market_data = market.get_marketing_data().await.unwrap();
+            let coll = PickColl {
+                config: crate::PickCollConfig {
+                    target_config: config.setting_card.target.clone(),
+                    area: config.area.clone(),
+                },
+                colls: market_data.colls,
+            };
+            let c = coll.run();
+            debug!("{:?}", c);
+            Msg::ActiveColls(c)
         }
     }
 }

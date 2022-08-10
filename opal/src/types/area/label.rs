@@ -1,23 +1,18 @@
-use crate::area::Msgs;
-use crate::components;
+use crate::traits::filter_by_coll::FilterByColl;
+use crate::FundingColl;
 use crate::InputValue;
 use crate::LabelText;
 use crate::ParserError;
 use crate::SetTargetColl;
-use crate::SettingCallbackFn;
 use crate::SettingList;
 use multimap::MultiMap;
-use opal_derive::CallbackMsgMacro;
-use opal_derive::SettingCallbackFnMacro;
-use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
+use opal_derive::WidgetMsg;
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::{AsInputType, AsTotalMsg, InputType};
+use crate::{AsInputType, InputType};
 
-#[derive(
-    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
-)]
+#[derive(Clone, Debug, PartialEq, WidgetMsg)]
 #[totalMsgName("CollCard")]
 #[page("coll_card")]
 pub enum LabelMsg {
@@ -55,6 +50,18 @@ pub struct Label {
     pub setting: LabelSetting,
     pub current: MultiMap<LabelText, Slug>,
 }
+impl Label {
+    pub fn get_from_coll_name(&self, slug: &String) -> Vec<LabelText> {
+        self.current
+            .keys()
+            .filter_map(|key| match self.current.get_vec(key) {
+                Some(xs) if xs.contains(&slug) => Some(key.clone()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    }
+}
+
 impl SettingList for Label {
     type T = String;
     fn push(&self, setting: Self::T) -> Self {

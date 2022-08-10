@@ -1,6 +1,6 @@
 pub mod volume;
 
-use opal_derive::{AsSettingOptionMacro, CallbackMsgMacro, SettingCallbackFnMacro, ValueOPMacro};
+use opal_derive::{AsSettingOptionMacro, OptionMsg};
 pub use volume::*;
 
 pub mod one;
@@ -21,7 +21,7 @@ pub struct StrategyConfig {
     pub s_three: Three,
 }
 
-#[derive(Clone, Debug, PartialEq, ValueOPMacro, SettingCallbackFnMacro, CallbackMsgMacro)]
+#[derive(Clone, Debug, PartialEq, OptionMsg)]
 #[page("strategy_options")]
 pub enum Msgs {
     One(OneMsg),

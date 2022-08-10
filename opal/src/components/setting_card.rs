@@ -1,7 +1,11 @@
+use crate::components::funding_rule_options::FundingRuleOptions;
 use crate::components::strategy_options::StrategyOptions;
+use crate::components::target_options::TargetOptions;
 use crate::components::trigger_options::TriggerOptions;
 use crate::func_components::{NavButton, NavButtonProps, SvgIcons};
+use crate::funding_rules::FundingRuleConfig;
 use crate::strategys::StrategyConfig;
+use crate::targets::TargetConfig;
 use crate::triggers::TriggerConfig;
 use crate::SettingCardConfig;
 use yew::html::Scope;
@@ -11,6 +15,8 @@ pub enum Msg {
     ActiveTab(u32),
     StrategyConfigUpdate(StrategyConfig),
     TriggerConfigUpdate(TriggerConfig),
+    TargetConfigUpdate(TargetConfig),
+    FundingRuleConfigUpdate(FundingRuleConfig),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -96,6 +102,14 @@ impl Component for SettingCard {
             ctx.link()
                 .callback(|config| Msg::TriggerConfigUpdate(config))
         };
+        let target_config_onupdate = {
+            ctx.link()
+                .callback(|config| Msg::TargetConfigUpdate(config))
+        };
+        let funding_rule_config_onupdate = {
+            ctx.link()
+                .callback(|config| Msg::FundingRuleConfigUpdate(config))
+        };
         html! {
             // card board
             <div class="max-w-[840px] w-11/12 ">
@@ -115,8 +129,7 @@ impl Component for SettingCard {
                                                         svg={props.svg}
                                                         index={props.index}
                                                         is_active={props.is_active}
-                                                        onclick={props.onclick}
-                                                            />
+                                                        onclick={props.onclick} />
                                             </li>
                                     }
                                     }).collect::<Html>()}
@@ -129,6 +142,8 @@ impl Component for SettingCard {
                         {match select_tab {
                             3 => html!{<StrategyOptions onupdate={strategy_config_onupdate} config={self.config.strategy.clone()}/>},
                             2 => html!{<TriggerOptions onupdate={trigger_config_onupdate} config={self.config.trigger.clone()}/>},
+                            1 => html!{<TargetOptions onupdate={target_config_onupdate} config={self.config.target.clone()}/>},
+                            0 => html!{<FundingRuleOptions onupdate={funding_rule_config_onupdate} config={self.config.funding_rule.clone()}/>},
                             _ => html!{}
                         } }
                     </div>
@@ -141,6 +156,7 @@ impl Component for SettingCard {
         match msg {
             Msg::ActiveTab(x) => {
                 self.config.active_tab = x;
+                ctx.props().onupdate.emit(self.config.clone());
                 true
             }
             Msg::StrategyConfigUpdate(c) => {
@@ -153,10 +169,21 @@ impl Component for SettingCard {
                 ctx.props().onupdate.emit(self.config.clone());
                 true
             }
+            Msg::TargetConfigUpdate(c) => {
+                self.config.target = c;
+                ctx.props().onupdate.emit(self.config.clone());
+                true
+            }
+            Msg::FundingRuleConfigUpdate(c) => {
+                self.config.funding_rule = c;
+                ctx.props().onupdate.emit(self.config.clone());
+                true
+            }
         }
     }
 
-    fn changed(&mut self, _ctx: &Context<Self>) -> bool {
+    fn changed(&mut self, ctx: &Context<Self>) -> bool {
+        self.config = ctx.props().config.clone();
         true
     }
 

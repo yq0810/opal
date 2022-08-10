@@ -1,12 +1,8 @@
-use super::Msgs;
 use crate::LabelText;
-use crate::SettingCallbackFn;
-use crate::{components, AsInputType, AsTotalMsg, InputSelect, InputType, InputValue};
-use opal_derive::{AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro, ValueOPMacro};
+use crate::{AsInputType, InputSelect, InputType, InputValue};
+use opal_derive::WidgetMsg;
 
-#[derive(
-    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
-)]
+#[derive(Clone, Debug, PartialEq, WidgetMsg)]
 #[totalMsgName("Strategy")]
 #[page("strategy_options")]
 pub enum TwoMsg {

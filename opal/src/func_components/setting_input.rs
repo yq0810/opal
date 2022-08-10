@@ -1,7 +1,9 @@
 use crate::{SettingDuration, SettingOption, ValueOP};
+use log::debug;
 use web_sys::{HtmlInputElement, KeyboardEvent};
 use yew::{
-    classes, function_component, functional::*, html, html::ImplicitClone, NodeRef, Properties,
+    classes, function_component, functional::*, html, html::ImplicitClone, Html, NodeRef,
+    Properties,
 };
 
 #[derive(Clone, PartialEq, Properties)]
@@ -68,6 +70,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
                 crate::TotalMsg::TriggerMsg(x) => x.get_value(),
                 crate::TotalMsg::CollCardMsg(x) => x.get_value(),
                 crate::TotalMsg::TargetMsg(x) => x.get_value(),
+                crate::TotalMsg::FundingRuleMsg(x) => x.get_value(),
             };
             use_effect(move || {
                 if let Some(input) = input_ref_2.cast::<HtmlInputElement>() {
@@ -83,6 +86,7 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
                 crate::TotalMsg::TriggerMsg(x) => x.get_value().parse().unwrap(),
                 crate::TotalMsg::CollCardMsg(x) => x.get_value().parse().unwrap(),
                 crate::TotalMsg::TargetMsg(x) => x.get_value().parse().unwrap(),
+                crate::TotalMsg::FundingRuleMsg(x) => x.get_value().parse().unwrap(),
             };
             use_effect(move || {
                 if let Some(input) = select_input_ref_2.cast::<HtmlInputElement>() {
@@ -91,7 +95,6 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
                 || ()
             });
         });
-        // on_search.emit(value);
     };
     let duration_ref_o = option
         .duration
@@ -128,8 +131,13 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         };
         duration
     };
+    let label_text = option.label_text.clone().map(|label_text| {
+        html! {
+            <div class={toggle_classes.clone()}>{label_text}</div>
+        }
+    });
 
-    let input = option.input.map(|input| {
+    let input = option.input.clone().map(|input| {
         let text_empty = text_empty.clone();
         let input_ref_copy = input_ref.clone();
         let input_ref_copy_2 = input_ref.clone();
@@ -216,11 +224,84 @@ pub fn strategy_input(props: &StrategyInputProps) -> Html {
         }
     });
 
+    let multi_click = option.multi_select.clone().map(|multi_click| {
+        let option_node = multi_click
+            .iter()
+            .map(|_| NodeRef::default())
+            .collect::<Vec<_>>();
+
+        let option_node = option_node.clone();
+        let select = multi_click
+            .clone()
+            .iter()
+            .cloned()
+            .enumerate()
+            .map(move |(i, x)| {
+                let on_click = x.on_change.clone();
+                let (v_label, v_bool): (_, bool) = match x.msg.clone() {
+                    crate::TotalMsg::TargetMsg(crate::targets::Msgs::MyLabel(msg)) => {
+                        let value = msg.get_value().clone();
+                        let vs = value.split(",").map(|x| x.to_string()).collect::<Vec<_>>();
+                        (vs[0].clone(), vs[1].clone().parse().unwrap())
+                    }
+                    _ => panic!("not multi selelct  msg"),
+                };
+                let option_node_copy = option_node.clone();
+                use_effect(move || {
+                    if let Some(input) =
+                        &option_node_copy.get(i).unwrap().cast::<HtmlInputElement>()
+                    {
+                        input.set_checked(v_bool);
+                    }
+                    || ()
+                });
+                let event_label = v_label.clone();
+                let select_input_ref_copy = option_node.get(i).unwrap().clone();
+                let event = move |_e| {
+                    let s = select_input_ref_copy
+                        .clone()
+                        .cast::<HtmlInputElement>()
+                        .map(|select| select.checked())
+                        .unwrap_or_default();
+                    on_click.emit(format!("{},{}", event_label, s))
+                };
+                let select_input_ref_copy_2 = option_node.get(i).unwrap().clone();
+                html! {
+                    <div class="h-8 rounded-full px-1.5 py-0.5  bg-indigo-500 text-indigo-100 flex">
+                        <div>
+                            <input type="checkbox" class=""
+                                ref={select_input_ref_copy_2.clone()}
+                                onclick={event}
+                                />
+                        </div>
+                        <div class="text-white">
+                            {v_label.clone()}
+                        </div>
+                    </div>
+                }
+            })
+            .collect::<Vec<_>>();
+        select
+    });
+    debug!("multi_click {:?}", multi_click.is_some());
+
     html! {
         <div> //key
             <div class={search_bar_classes}>
                 {match select {
                     Some(select) => select,
+                    None => html! {},
+                }}
+                {match label_text {
+                    Some(label_text) => label_text,
+                    None => html! {},
+                }}
+                {match multi_click {
+                    Some(multi_click) => html!{
+                        <div class="md-5 flex ">
+                            {multi_click.iter().cloned().collect::<Html>()}
+                        </div>
+                    },
                     None => html! {},
                 }}
                 {match input {

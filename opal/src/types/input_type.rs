@@ -1,9 +1,15 @@
-use crate::TotalMsg;
+use crate::{SettingSelect, TotalMsg};
 
 use super::setting_option::SettingDuration;
 
 #[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub struct LabelText(pub (String));
+
+impl Default for LabelText {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
 
 impl Into<LabelText> for &'static str {
     fn into(self) -> LabelText {
@@ -31,6 +37,9 @@ pub struct InputDuration(pub SettingDuration, pub TotalMsg);
 pub struct InputSelect(pub TotalMsg);
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct InputMultiSelect(pub Vec<TotalMsg>);
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct InputClick(pub TotalMsg);
 
 pub enum InputType {
@@ -39,6 +48,7 @@ pub enum InputType {
     Select(LabelText, InputSelect),
     Button(LabelText, InputClick),
     Value(LabelText, InputValue),
+    MultiSelectSelect(LabelText, InputSelect, InputMultiSelect),
 }
 
 impl InputType {
@@ -50,13 +60,15 @@ impl InputType {
         Option<InputSelect>,
         Option<InputDuration>,
         Option<InputClick>,
+        Option<InputMultiSelect>,
     ) {
         let a = match self {
             InputType::ValueSelect(a, ..)
             | InputType::ValueSelectDuration(a, ..)
             | InputType::Button(a, ..)
             | InputType::Value(a, ..)
-            | InputType::Select(a, ..) => Some(a.clone()),
+            | InputType::Select(a, ..)
+            | InputType::MultiSelectSelect(a, _, _) => Some(a.clone()),
         };
 
         let b = match self {
@@ -68,6 +80,7 @@ impl InputType {
         let c = match self {
             InputType::ValueSelect(_, _, i, ..)
             | InputType::Select(_, i)
+            | InputType::MultiSelectSelect(_, i, _)
             | InputType::ValueSelectDuration(_, _, i, ..) => Some(i.clone()),
             _ => None,
         };
@@ -79,6 +92,10 @@ impl InputType {
             InputType::Button(_, i) => Some(i.clone()),
             _ => None,
         };
-        (a, b, c, d, e)
+        let f = match self {
+            InputType::MultiSelectSelect(_, _, i) => Some(i.clone()),
+            _ => None,
+        };
+        (a, b, c, d, e, f)
     }
 }

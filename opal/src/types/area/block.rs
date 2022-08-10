@@ -2,23 +2,18 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::area::Msgs;
-use crate::components;
+use crate::traits::filter_by_coll::FilterByColl;
+use crate::FundingColl;
 use crate::InputClick;
 use crate::ParserError;
 use crate::SetTargetColl;
-use crate::SettingCallbackFn;
 use crate::SettingList;
 use concat_string::concat_string;
-use opal_derive::CallbackMsgMacro;
-use opal_derive::SettingCallbackFnMacro;
-use opal_derive::{AsTotalMsgMacro, ValueOPMacro};
+use opal_derive::WidgetMsg;
 
-use crate::{AsInputType, AsTotalMsg, InputType};
+use crate::{AsInputType, InputType};
 
-#[derive(
-    Clone, Debug, PartialEq, ValueOPMacro, AsTotalMsgMacro, CallbackMsgMacro, SettingCallbackFnMacro,
-)]
+#[derive(Clone, Debug, PartialEq, WidgetMsg)]
 #[totalMsgName("CollCard")]
 #[page("coll_card")]
 pub enum BlockMsg {
@@ -58,6 +53,17 @@ pub struct Block {
     pub setting: BlockSetting,
     pub current: HashMap<String, BlockSetting>,
 }
+
+impl FilterByColl for Block {
+    fn filter_by_coll(&self, coll: &FundingColl) -> bool {
+        if let Some(block) = self.current.get(&coll.db.slug) {
+            !block.bool
+        } else {
+            false
+        }
+    }
+}
+
 impl SettingList for Block {
     type T = BlockSetting;
     fn push(&self, setting: Self::T) -> Self {

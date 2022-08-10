@@ -39,18 +39,22 @@ impl Component for StrategyOptions {
                 TotalMsgScope::StrategyMsgScope(ctx.link().clone()),
             );
         html! {
-            <div class="flex-col p-5 block p-6 max-w-sm bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 w-full">
-                <p class="text-2xl dark:text-slate-50 text-slate-900 px-5">
-                    {"Strategy option"}
-                </p>
-                    {    strategy_inputs.iter().map(|option| {
-                            html!{
-                                <div class="mx">
-                                    <SettingInput option={option.clone()} />
-                                </div>
-                            }
-                         }).collect::<Html>()
-                    }
+            <div>
+                <div class="flex-col p-5 block p-6 max-w-sm bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 w-full">
+                    <p class="text-2xl dark:text-slate-50 text-slate-900 px-5">
+                        {"Strategy option"}
+                    </p>
+                        {    strategy_inputs.iter().map(|option| {
+                                html!{
+                                    <div class="mx">
+                                        <SettingInput option={option.clone()} />
+                                    </div>
+                                }
+                            }).collect::<Html>()
+                        }
+                </div>
+                <div>
+                </div>
             </div>
         }
     }
@@ -101,7 +105,9 @@ impl Component for StrategyOptions {
         t
     }
 
-    fn changed(&mut self, _ctx: &yew::Context<Self>) -> bool {
+    fn changed(&mut self, ctx: &yew::Context<Self>) -> bool {
+        let props = ctx.props();
+        self.config = props.config.clone();
         true
     }
 

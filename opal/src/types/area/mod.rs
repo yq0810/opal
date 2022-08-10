@@ -9,14 +9,14 @@ use crate::components;
 use crate::traits::SetTargetColl;
 use crate::SettingCallbackFn;
 pub use label::*;
-use opal_derive::{AsSettingOptionMacro, CallbackMsgMacro, SettingCallbackFnMacro, ValueOPMacro};
+use opal_derive::{AsSettingOptionMacro, OptionMsg};
 
 // use crate::{
 //     AsInputType, AsSettingOption, CallbackMsg, SetTargetColl, SettingCallbackFn, SettingList,
 //     SettingOption, TotalMsgScope, ValueOP,
 // };
 
-#[derive(Clone, Debug, PartialEq, ValueOPMacro, SettingCallbackFnMacro, CallbackMsgMacro)]
+#[derive(Clone, Debug, PartialEq, OptionMsg)]
 #[page("coll_card")]
 pub enum Msgs {
     Favorite(FavoriteMsg),

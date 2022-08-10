@@ -1,6 +1,11 @@
+use std::collections::HashSet;
+
 use crate::area::AreaConfig;
 use crate::components::coll_card::CollCard;
+use crate::components::coll_perview_card::CollPerviewCard;
+use crate::traits::DebugConfig;
 use chrono::Duration;
+use gloo::console::externs::debug;
 use gloo::timers::callback::Timeout;
 use multimap::MultiMap;
 use sql_js_httpvfs_rs::*;
@@ -16,7 +21,7 @@ use log::debug;
 use crate::types::{FloorPriceResult, QueryError, SearchMode, SearchResults};
 use crate::{
     find_traget_from_floor_active, strategy_one, strategy_two, ActivePriceResult, CollResult,
-    HTMLDisplay, SetTargetColl, SettingCardConfig, TargetResult,
+    FundingColl, HTMLDisplay, SetTargetColl, SettingCardConfig, TargetResult,
 };
 use crate::{func_components::*, CollInfo};
 
@@ -40,7 +45,7 @@ const LIGHT_THEME: &str = "light";
 
 pub enum Msg {
     TimeoutStart,
-    SearchStart(Option<i32>),
+    StartSimulation,
     SearchSlug(Option<String>),
     ShowCollRefresh(Option<CollInfo>),
     TargetResults(Result<Vec<TargetResult>, QueryError>),
@@ -57,6 +62,8 @@ pub enum Msg {
     OptionUpdate(Config),
     AreaUpdate(AreaConfig),
     SettingCardUpdate(SettingCardConfig),
+    ActiveColls(Vec<FundingColl>),
+    Nothing,
 }
 impl Msg {}
 
@@ -71,6 +78,7 @@ pub struct Config {
     pub setting_card: SettingCardConfig,
     pub area: AreaConfig,
 }
+impl DebugConfig for Config {}
 
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct StrategyResult {
@@ -94,6 +102,7 @@ pub struct Index {
     success_count: i32,
     earn: f64,
     pub show_coll: Option<CollInfo>,
+    pub active_colls: Vec<FundingColl>,
 }
 
 unsafe fn initialize_worker_if_missing() {
@@ -116,6 +125,7 @@ fn timeout_handle(_: html::Scope<App>) -> Timeout {
 
 #[cfg(debug_assertions)]
 fn timeout_handle(link: html::Scope<Index>) -> Timeout {
+    // Timeout::new(500, move || link.send_message(Msg::TimeoutStart))
     Timeout::new(500, move || link.send_message(Msg::TimeoutStart))
 }
 
@@ -149,6 +159,7 @@ impl Component for Index {
             config: index_config(),
             one_result: Default::default(),
             show_coll: None,
+            active_colls: Default::default(),
         }
     }
 
@@ -157,6 +168,8 @@ impl Component for Index {
             let callback = ctx.link().callback(|mode| Msg::ToggleThemeMode(mode));
             callback.emit(ThemeMode::Dark);
         }
+
+        debug!("index page rendered");
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -170,8 +183,11 @@ impl Component for Index {
 
                 ctx.link().send_future(SearchMode::start_slug(
                     "azuki".to_string(),
-                    Duration::milliseconds(1500),
+                    Duration::milliseconds(600),
                 ));
+
+                ctx.link()
+                    .send_future(SearchMode::start(self.config.clone()));
                 true
             }
 
@@ -199,14 +215,12 @@ impl Component for Index {
                 }
                 Err(_) => true,
             },
-            Msg::SearchStart(x) => match x {
-                Some(x) => {
-                    self.is_busy = true;
-                    ctx.link().send_future(SearchMode::start(x));
-                    true
-                }
-                None => true,
-            },
+            Msg::StartSimulation => {
+                self.is_busy = true;
+                ctx.link()
+                    .send_future(SearchMode::start(self.config.clone()));
+                true
+            }
             Msg::UpdateFloor(results) => match results {
                 Ok(results) => {
                     results.iter().for_each(|x| {
@@ -384,14 +398,44 @@ impl Component for Index {
             }
             Msg::OptionUpdate(config) => {
                 self.config = config;
+
                 true
             }
             Msg::AreaUpdate(area_config) => {
-                self.config.area = area_config;
+                self.config.area = area_config.clone();
+                //todo sometime need this proc
+                self.config.setting_card.target.my_label.total_labels = {
+                    let labels = area_config
+                        .label
+                        .current
+                        .iter()
+                        .map(|(x, _)| x.clone())
+                        .collect::<HashSet<_>>();
+                    labels
+                };
+
+                self.config.setting_card.target.my_label.selected_labels = {
+                    let labels = self
+                        .config
+                        .setting_card
+                        .target
+                        .my_label
+                        .total_labels
+                        .iter()
+                        .map(|(x)| x.clone())
+                        .collect::<HashSet<_>>();
+                    labels
+                };
+                debug!("{:?}", self.config.area.label.current);
                 true
             }
             Msg::SettingCardUpdate(config) => {
                 self.config.setting_card = config;
+                true
+            }
+            Msg::Nothing => true,
+            Msg::ActiveColls(xs) => {
+                self.active_colls = xs;
                 true
             }
         }
@@ -417,11 +461,6 @@ impl Component for Index {
         let on_toggle = link.callback(|_| Msg::ToggleSearchType);
         let placeholder: &'static str = self.mode.placeholder_text();
 
-        let debug = format!("{:?}", self.config);
-        let deubug_display = debug
-            .split(",")
-            .flat_map(|x| x.split("{").map(|x| x.to_string().replace("}", "")))
-            .collect::<Vec<_>>();
         let setting_card_callback: Callback<SettingCardConfig> =
             link.callback(|c| Msg::SettingCardUpdate(c));
         let coll_card_callback: Callback<AreaConfig> = link.callback(|c| Msg::AreaUpdate(c));
@@ -441,29 +480,14 @@ impl Component for Index {
                     None => html!{},
                 }}
                 <SettingCard onupdate={setting_card_callback} first_load={self.first_load.clone()} config={self.config.setting_card.clone()} is_busy={self.is_busy} />
-                // <SearchCollResult
-                //     text_ref={text_ref.clone()}
-                //     on_search={on_search.clone()}
-                //     {placeholder}
-                //     on_toggle={on_toggle.clone()}
-                //     toggle_text={self.mode.button_text()}
-                //     first_load={self.first_load} is_busy={self.is_busy}/>
+                <CollPerviewCard colls={self.active_colls.clone()}/>
+
                 <div class="flex inherit top-0 right-0 justify-end my-10">
                     <div class="flex flex-col  text-white">
-                        { deubug_display.iter().map(|d| {
-                                html! {
-                                    <div>
-                                        {d}
-                                    </div>
-                                }
-                            }).collect::<Html>()
+                        { self.config.debug_display()
                         }
                     </div>
                 </div>
-                // <div class="text-white">
-                //     <p>{concat_string!("fp data:",self.floor_price.len().to_string(),"s")}</p>
-                //     <p>{concat_string!("ap data:",self.active_price.len().to_string(),"s")}</p>
-                // </div>
                 if self.is_busy {
                     <SpinnerIcon />
                 }
