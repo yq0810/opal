@@ -59,7 +59,7 @@ impl FilterByColl for Block {
         if let Some(block) = self.current.get(&coll.db.slug) {
             !block.bool
         } else {
-            false
+            true
         }
     }
 }

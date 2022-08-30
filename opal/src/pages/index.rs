@@ -62,7 +62,7 @@ pub enum Msg {
     OptionUpdate(Config),
     AreaUpdate(AreaConfig),
     SettingCardUpdate(SettingCardConfig),
-    ActiveColls(Vec<FundingColl>),
+    PickedAndExceptedColls(Vec<FundingColl>, Vec<FundingColl>),
     Nothing,
 }
 impl Msg {}
@@ -103,6 +103,7 @@ pub struct Index {
     earn: f64,
     pub show_coll: Option<CollInfo>,
     pub active_colls: Vec<FundingColl>,
+    pub except_colls: Vec<FundingColl>,
 }
 
 unsafe fn initialize_worker_if_missing() {
@@ -160,6 +161,7 @@ impl Component for Index {
             one_result: Default::default(),
             show_coll: None,
             active_colls: Default::default(),
+            except_colls: Default::default(),
         }
     }
 
@@ -308,7 +310,7 @@ impl Component for Index {
                                 .config
                                 .setting_card
                                 .strategy
-                                .s_three
+                                .tx_count
                                 .tx_count_duration
                                 .to_duration(),
                             &self.active_price,
@@ -317,9 +319,14 @@ impl Component for Index {
                         let is_s_1 = s_1.total_volume as i64
                             > self.config.setting_card.strategy.s_one.volume_rate_value
                             && s_1.tx_count
-                                > self.config.setting_card.strategy.s_three.tx_count_value;
+                                > self.config.setting_card.strategy.tx_count.tx_count_value;
                         let is_s_2 = s_2.total_volume as f64
-                            > self.config.setting_card.strategy.s_two.volume_total_value;
+                            > self
+                                .config
+                                .setting_card
+                                .strategy
+                                .total_volume
+                                .volume_total_value;
 
                         let earn = x.profit_sale_at(&x.compare_ap).unwrap();
                         self.success_count += 1;
@@ -434,8 +441,9 @@ impl Component for Index {
                 true
             }
             Msg::Nothing => true,
-            Msg::ActiveColls(xs) => {
+            Msg::PickedAndExceptedColls(xs, xs2) => {
                 self.active_colls = xs;
+                self.except_colls = xs2;
                 true
             }
         }
@@ -464,6 +472,24 @@ impl Component for Index {
         let setting_card_callback: Callback<SettingCardConfig> =
             link.callback(|c| Msg::SettingCardUpdate(c));
         let coll_card_callback: Callback<AreaConfig> = link.callback(|c| Msg::AreaUpdate(c));
+        let active_label = self
+            .config
+            .setting_card
+            .target
+            .my_label
+            .selected_labels
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
+        let block_colls = self
+            .config
+            .area
+            .block
+            .current
+            .iter()
+            .filter(|x| x.1.bool)
+            .map(|x| x.0.clone())
+            .collect::<Vec<_>>();
 
         html! {
             <div class={root_classes}>
@@ -480,7 +506,7 @@ impl Component for Index {
                     None => html!{},
                 }}
                 <SettingCard onupdate={setting_card_callback} first_load={self.first_load.clone()} config={self.config.setting_card.clone()} is_busy={self.is_busy} />
-                <CollPerviewCard colls={self.active_colls.clone()}/>
+                <CollPerviewCard except_colls={self.except_colls.clone()} picked_colls={self.active_colls.clone()} {active_label} {block_colls} setting_config={self.config.setting_card.clone()} area_config={self.config.area.clone()}/>
 
                 <div class="flex inherit top-0 right-0 justify-end my-10">
                     <div class="flex flex-col  text-white">

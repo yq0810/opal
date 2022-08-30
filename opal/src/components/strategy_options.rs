@@ -1,14 +1,14 @@
 use crate::func_components::SettingInput;
-use crate::strategys::{self, Msgs, StrategyConfig, ThreeMsg};
-use crate::strategys::{OneMsg, TwoMsg};
+use crate::strategys::{self, Msgs, StrategyConfig, TxCountMsg};
+use crate::strategys::{OneMsg, TotalVolumeMsg};
 use crate::{AsSettingOption, TotalMsgScope};
 use yew::{html, Callback, Component, Context, Html, Properties};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Msg {
     OneOptionUpdate(OneMsg),
-    TwoOptionUpdate(TwoMsg),
-    ThreeOptionUpdate(ThreeMsg),
+    TotalVolumeOptionUpdate(TotalVolumeMsg),
+    TxCountOptionUpdate(TxCountMsg),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -75,27 +75,27 @@ impl Component for StrategyOptions {
                 };
                 true
             }
-            Msg::TwoOptionUpdate(option_inputs) => {
+            Msg::TotalVolumeOptionUpdate(option_inputs) => {
                 match option_inputs {
-                    TwoMsg::UpdateVolumeTotalValue(v) => {
-                        self.config.s_two.volume_total_value = v.unwrap_or_default()
+                    TotalVolumeMsg::UpdateVolumeTotalValue(v) => {
+                        self.config.total_volume.volume_total_value = v.unwrap_or_default()
                     }
-                    TwoMsg::UpdateVolumeTotalSelect(v) => {
-                        self.config.s_two.volume_total_select = v.unwrap_or_default()
+                    TotalVolumeMsg::UpdateVolumeTotalSelect(v) => {
+                        self.config.total_volume.volume_total_select = v.unwrap_or_default()
                     }
                 }
                 true
             }
-            Msg::ThreeOptionUpdate(option_inputs) => {
+            Msg::TxCountOptionUpdate(option_inputs) => {
                 match option_inputs {
-                    ThreeMsg::UpdateTxCountValue(v) => {
-                        self.config.s_three.tx_count_value = v.unwrap_or_default();
+                    TxCountMsg::UpdateTxCountValue(v) => {
+                        self.config.tx_count.tx_count_value = v.unwrap_or_default();
                     }
-                    ThreeMsg::UpdateTxCountDuration(v) => {
-                        self.config.s_three.tx_count_duration = v.unwrap_or_default();
+                    TxCountMsg::UpdateTxCountDuration(v) => {
+                        self.config.tx_count.tx_count_duration = v.unwrap_or_default();
                     }
-                    ThreeMsg::UpdateTxCountSelect(v) => {
-                        self.config.s_three.tx_count_select = v.unwrap_or_default();
+                    TxCountMsg::UpdateTxCountSelect(v) => {
+                        self.config.tx_count.tx_count_select = v.unwrap_or_default();
                     }
                 }
                 true

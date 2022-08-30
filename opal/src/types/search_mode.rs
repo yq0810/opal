@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use crate::{
     pages::{Config, Msg},
     strategy_one,
     types::unit::my_date_format,
-    CollInfo, Market, MarketData, PickColl, Query, QueryError,
+    CollInfo, Market, PickColl, Query,
 };
 use chrono::{DateTime, Duration, Utc};
 use futures::Future;
@@ -98,16 +100,24 @@ impl SearchMode {
         async move {
             let market = Market::new();
             let market_data = market.get_marketing_data().await.unwrap();
+            let mut fps_map: HashMap<String, FloorPriceResult> = HashMap::new();
+            market_data.fps.iter().rev().for_each(|x| {
+                if !fps_map.contains_key(&x.slug) {
+                    fps_map.insert(x.slug.clone(), x.clone());
+                }
+            });
+
             let coll = PickColl {
                 config: crate::PickCollConfig {
                     target_config: config.setting_card.target.clone(),
                     area: config.area.clone(),
+                    strategy: config.setting_card.strategy.clone(),
                 },
                 colls: market_data.colls,
+                fps_map,
             };
-            let c = coll.run();
-            debug!("{:?}", c);
-            Msg::ActiveColls(c)
+            let (c, c2) = coll.run();
+            Msg::PickedAndExceptedColls(c, c2)
         }
     }
 }
@@ -191,6 +201,8 @@ pub struct ActivePriceResult {
 pub struct CollResult {
     pub slug: String,
     pub fee: i32,
+    pub is_verified: i32,
+    pub twitter_is_verified: i32,
 }
 impl SQLResult for CollResult {
     fn display(&self) -> String {

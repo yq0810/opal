@@ -6,10 +6,10 @@ pub use volume::*;
 pub mod one;
 pub use one::*;
 
-pub mod two;
-pub use two::*;
-pub mod three;
-pub use three::*;
+pub mod total_volume;
+pub use total_volume::*;
+pub mod tx_count;
+pub use tx_count::*;
 
 use crate::{components, SettingCallbackFn};
 
@@ -17,14 +17,14 @@ use crate::{components, SettingCallbackFn};
 #[page("strategy_options")]
 pub struct StrategyConfig {
     pub s_one: One,
-    pub s_two: Two,
-    pub s_three: Three,
+    pub total_volume: TotalVolume,
+    pub tx_count: TxCount,
 }
 
 #[derive(Clone, Debug, PartialEq, OptionMsg)]
 #[page("strategy_options")]
 pub enum Msgs {
     One(OneMsg),
-    Two(TwoMsg),
-    Three(ThreeMsg),
+    TotalVolume(TotalVolumeMsg),
+    TxCount(TxCountMsg),
 }

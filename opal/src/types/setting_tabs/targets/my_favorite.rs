@@ -1,3 +1,4 @@
+use crate::traits::filter_by_coll::FilterByColl;
 use crate::InputSelect;
 use crate::LabelText;
 use opal_derive::WidgetMsg;
