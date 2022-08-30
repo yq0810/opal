@@ -120,7 +120,7 @@ unsafe fn initialize_worker_if_missing() {
 }
 
 #[cfg(not(debug_assertions))]
-fn timeout_handle(_: html::Scope<App>) -> Timeout {
+fn timeout_handle(_: html::Scope<Index>) -> Timeout {
     Timeout::new(2000, move || ())
 }
 
