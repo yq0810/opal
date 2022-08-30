@@ -77,7 +77,7 @@ jobs:
       - name: Build
         working-directory: ./opal
         run: |
-          TRUNK_BUILD_PUBLIC_URL="/opal/" trunk build --release
+          TRUNK_BUILD_PUBLIC_URL="/opal/" trunk build
 
       - name: Setup Python
         uses: actions/setup-python@v2
